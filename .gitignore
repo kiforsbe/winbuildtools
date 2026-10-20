@@ -1,0 +1,8 @@
+/artifacts/
+/work/
+**/bin/
+**/obj/
+*.pfx
+*.p12
+*.key
+*.cer
