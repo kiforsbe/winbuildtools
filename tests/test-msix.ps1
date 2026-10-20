@@ -36,6 +36,14 @@ try {
     Set-Content "$fixture/payload/extra.txt" 'unexpected input'
     Rejected { Test-WbtMsix $result.Artifact "$fixture/payload" "$fixture/manifest.xml" "$fixture/extra inspection" } 'payload'
     Remove-Item -LiteralPath "$fixture/payload/extra.txt"
+    Move-Item -LiteralPath "$fixture/payload/Example.exe" -Destination "$fixture/held.exe"
+    try { Rejected { Test-WbtMsix $result.Artifact "$fixture/payload" "$fixture/manifest.xml" "$fixture/unexpected inspection" } 'Unexpected MSIX payload' }
+    finally { Move-Item -LiteralPath "$fixture/held.exe" -Destination "$fixture/payload/Example.exe" }
+    [IO.File]::WriteAllText("$fixture/arm64.xml",$manifest.Replace('ProcessorArchitecture="x64"','ProcessorArchitecture="arm64"'))
+    $arm64=New-WbtMsix "$fixture/payload" "$fixture/arm64.xml" "$fixture/arm64 package"
+    Check ($arm64.Architecture -eq 'arm64') 'ARM64 manifest packs and inspects without executing.'
+    [IO.File]::WriteAllText("$fixture/dtd.xml",$manifest.Replace('<Package ','<!DOCTYPE Package [<!ENTITY example "x">]><Package '))
+    Rejected { New-WbtMsix "$fixture/payload" "$fixture/dtd.xml" "$fixture/dtd output" } 'DTD'
     Set-Content "$fixture/payload/Example.exe" 'changed'
     Rejected { Test-WbtMsix $result.Artifact "$fixture/payload" "$fixture/manifest.xml" "$fixture/changed inspection" } 'mismatch'
     Set-Content "$fixture/payload/AppxSignature.p7x" 'stale signature'

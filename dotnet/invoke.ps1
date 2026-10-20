@@ -7,6 +7,8 @@ Requires a caller-installed .NET 8+ SDK. Restore always uses locked mode; Build
 and Publish always use --no-restore. Use identical project, properties, runtime
 and artifacts paths in each operation. This command never selects dependencies,
 creates a project lock, audits license rights or downloads the tooling repository.
+Requires an existing project lock file; custom NuGetLockFilePath can be supplied
+through Properties. Consumers must also commit locks for referenced projects.
 Project-specific SDK selection/global.json, restore feeds and policies remain
 consumer-owned. Do not supply secrets in properties or logged tool output.
 .PARAMETER Properties
@@ -35,7 +37,9 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot '../common/Tools.ps1')
 $projectPath=Resolve-WbtPath $Project
 if(!(Test-Path -LiteralPath $projectPath -PathType Leaf)) { throw 'Project does not exist.' }
+if([IO.Path]::GetExtension($projectPath) -notin @('.csproj','.fsproj','.vbproj')) { throw 'Select a single .NET project file, not a solution.' }
 Assert-WbtNoLinks $projectPath
+$output=$null
 $artifacts=Resolve-WbtPath $ArtifactsDirectory
 Assert-WbtNoLinks $artifacts
 if($OutputDirectory -and $Operation -ne 'Publish') { throw 'OutputDirectory is only valid for Publish.' }
@@ -52,13 +56,23 @@ if($OutputDirectory) {
 $propertyArgs=[Collections.Generic.List[string]]::new()
 foreach($name in $Properties.Keys | Sort-Object) {
     if($name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$' -or [string]$Properties[$name] -match '[;,\r\n]' -or $Properties[$name] -is [array]) { throw "Invalid MSBuild property: $name" }
-    if($name -in @('ArtifactsPath','UseArtifactsOutput','Configuration','RuntimeIdentifier','OutputPath','BaseOutputPath','BaseIntermediateOutputPath','IntermediateOutputPath','PublishDir','RestoreLockedMode')) { throw "Context-owned property must use the helper parameters: $name" }
+    if($name -in @('ArtifactsPath','UseArtifactsOutput','Configuration','RuntimeIdentifier','OutputPath','BaseOutputPath','BaseIntermediateOutputPath','IntermediateOutputPath','PublishDir','RestoreLockedMode','RestorePackagesWithLockFile')) { throw "Context-owned property must use the helper parameters: $name" }
     $propertyArgs.Add("-p:$name=$($Properties[$name])")
 }
 if($NuGetConfig) { $NuGetConfig=Resolve-WbtPath $NuGetConfig; if(!(Test-Path -LiteralPath $NuGetConfig -PathType Leaf)) { throw 'NuGet configuration does not exist.' } }
+if($Operation -eq 'Restore') {
+    # NuGet's --locked-mode alone can restore without a lock. Refuse that gap
+    # before invoking the SDK. Imported project settings remain caller-owned;
+    # expose custom lock paths explicitly in Properties so this check can agree.
+    $lockPath=if($Properties.ContainsKey('NuGetLockFilePath')) { [string]$Properties['NuGetLockFilePath'] } else { 'packages.lock.json' }
+    if(![IO.Path]::IsPathRooted($lockPath)) { $lockPath=Join-Path (Split-Path $projectPath -Parent) $lockPath }
+    $lockPath=Resolve-WbtPath $lockPath
+    Assert-WbtNoLinks $lockPath
+    if(!(Test-Path -LiteralPath $lockPath -PathType Leaf)) { throw "Existing project lock file required before restore: $lockPath" }
+}
 if(!$LogPath) { $LogPath=Join-Path $artifacts ("logs/$($Operation.ToLowerInvariant())-"+[guid]::NewGuid().ToString('N')+'.log') }
 $LogPath=Resolve-WbtPath $LogPath
-$arguments=@($Operation.ToLowerInvariant(),$projectPath,'--artifacts-path',$artifacts,'--nologo',"-p:Configuration=$Configuration")+@($propertyArgs)
+$arguments=@($Operation.ToLowerInvariant(),$projectPath,'--artifacts-path',$artifacts,'--nologo',"-p:Configuration=$Configuration",'-p:RestorePackagesWithLockFile=true')+@($propertyArgs)
 if($RuntimeIdentifier) { $arguments+=@('--runtime',$RuntimeIdentifier) }
 if($Operation -eq 'Restore') {
     $arguments+='--locked-mode'

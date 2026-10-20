@@ -9,7 +9,8 @@ function Write-WbtArtifactManifest {
     if(Test-Path -LiteralPath $output) { throw 'Manifest output already exists.' }
     # Inspect actual bytes rather than trusting a caller-supplied Signed flag.
     $signature=Get-AuthenticodeSignature -LiteralPath $artifactPath
-    $record=[ordered]@{SchemaVersion=1;Artifact=[IO.Path]::GetFileName($artifactPath);Version=$Version;SourceCommit=$SourceCommit;SourceDirty=[bool]$SourceDirty;SHA256=(Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash;Signed=([bool]$signature.SignerCertificate -and $signature.Status -notin @('NotSigned','HashMismatch'));SignatureStatus=[string]$signature.Status;SignerThumbprint=$signature.SignerCertificate.Thumbprint}
+    $thumbprint=if($signature.SignerCertificate) { $signature.SignerCertificate.Thumbprint } else { $null }
+    $record=[ordered]@{SchemaVersion=1;Artifact=[IO.Path]::GetFileName($artifactPath);Version=$Version;SourceCommit=$SourceCommit;SourceDirty=[bool]$SourceDirty;SHA256=(Get-FileHash -LiteralPath $artifactPath -Algorithm SHA256).Hash;Signed=([bool]$signature.SignerCertificate -and $signature.Status -in @('Valid','NotTrusted'));SignatureStatus=[string]$signature.Status;SignerThumbprint=$thumbprint}
     $json=$record | ConvertTo-Json
     # CreateNew avoids overwriting previous release metadata, even on races.
     $stream=[IO.File]::Open($output,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)

@@ -1,0 +1,42 @@
+name: Verify
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      # Native Git avoids bringing a Node action/dependency tree into this
+      # PowerShell-only repository. Authentication exists only in this step's
+      # process environment, never in the remote URL or persisted Git config.
+      - name: Check out the selected revision
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:GITHUB_SHA -notmatch '^[a-fA-F0-9]{40}$') { throw 'Invalid source revision.' }
+          git init --initial-branch=main .
+          if ($LASTEXITCODE -ne 0) { throw 'Git initialization failed.' }
+          git remote add origin "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY.git"
+          if ($LASTEXITCODE -ne 0) { throw 'Git remote setup failed.' }
+          try {
+            $env:GIT_CONFIG_COUNT = '1'
+            $env:GIT_CONFIG_KEY_0 = "http.$env:GITHUB_SERVER_URL/.extraheader"
+            $env:GIT_CONFIG_VALUE_0 = 'AUTHORIZATION: basic ' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("x-access-token:$env:CHECKOUT_TOKEN"))
+            git -c protocol.version=2 fetch --no-tags --depth=1 origin $env:GITHUB_SHA
+            if ($LASTEXITCODE -ne 0) { throw 'Git fetch failed.' }
+          } finally {
+            Remove-Item Env:GIT_CONFIG_COUNT, Env:GIT_CONFIG_KEY_0, Env:GIT_CONFIG_VALUE_0, Env:CHECKOUT_TOKEN -ErrorAction SilentlyContinue
+          }
+          git checkout --detach $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Git checkout failed.' }
+      - name: Verify packaging and consumer integration
+        run: ./verify.ps1 -Integration

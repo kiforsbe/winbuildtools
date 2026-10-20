@@ -13,6 +13,7 @@ try {
     Rejected { & $helper -Operation Build -Project "$fixture/project with spaces/Example.csproj" -ArtifactsDirectory "$fixture/obj" -OutputDirectory "$fixture/output" } 'Publish'
     Rejected { & $helper -Operation Build -Project "$fixture/project with spaces/Example.csproj" -ArtifactsDirectory "$fixture/obj" -Properties @{ArtifactsPath='other'} } 'owned'
     Rejected { & $helper -Operation Restore -Project "$fixture/project with spaces/Example.csproj" -ArtifactsDirectory "$fixture/obj" -Properties @{Example='x,RestoreLockedMode=false'} } 'property'
+    Rejected { & $helper -Operation Restore -Project "$fixture/project with spaces/Example.csproj" -ArtifactsDirectory "$fixture/obj" } 'lock file'
     if($Integration) {
         $sdkOutput=& dotnet --version
         if($LASTEXITCODE -ne 0 -or $sdkOutput -notmatch '^\d+\.\d+\.\d+$') { throw 'A stable .NET 8+ SDK is required for integration tests.' }
@@ -28,7 +29,7 @@ try {
         Push-Location $fixture
         try {
             Rejected { & $helper -Operation Build -Project './project with spaces/Example.csproj' -ArtifactsDirectory './never-restored' } 'failed'
-            $null=& $helper -Operation Restore -Project './project with spaces/Example.csproj' -ArtifactsDirectory './artifacts' -Properties @{RestorePackagesWithLockFile='true'}
+            $null=& $helper -Operation Restore -Project './project with spaces/Example.csproj' -ArtifactsDirectory './artifacts'
             $null=& $helper -Operation Build -Project './project with spaces/Example.csproj' -ArtifactsDirectory './artifacts'
             $result=& $helper -Operation Publish -Project './project with spaces/Example.csproj' -ArtifactsDirectory './artifacts' -OutputDirectory './published output' -LogPath './logs/publish.log'
             Check ($result.LogPath -eq "$fixture\logs\publish.log" -and (Test-Path "$fixture/logs/publish.log")) 'Explicit log path follows caller location.'

@@ -1,0 +1,53 @@
+{
+  "SourceRepository": "https://github.com/kiforsbe/agenda",
+  "SourceCommit": "f1586a4",
+  "SourceDirectory": "tools/msi",
+  "ExtractionDate": "2026-10-20",
+  "License": "MIT; copyright-holder relicensing authorized 2026-10-20",
+  "Files": [
+    {
+      "Path": "msi/Authoring.ps1",
+      "SHA256": "99063A6EFFF689B918A9953BFC2A9283094BEFBA03C81FE51CFB8D65013B0593"
+    },
+    {
+      "Path": "msi/config.schema.json",
+      "SHA256": "DF064A643AC054012E7496D8366939C3D4A390E8D973C7A5FC24D29AC12C7162"
+    },
+    {
+      "Path": "msi/Configuration.ps1",
+      "SHA256": "E1E93E0914350065FC721A63B6F6FDD8D5B4BA0B48FCA78602BCB009419FB22D"
+    },
+    {
+      "Path": "msi/Database.ps1",
+      "SHA256": "6C7362A9D1EA2784F1DA387B034FD837889C7211C7BCAD5E7C9CA7167A8E2874"
+    },
+    {
+      "Path": "msi/example.json",
+      "SHA256": "202411EC327ECA364C9D494ED288D58062F9F441C029338AF56168A0766A8EF3"
+    },
+    {
+      "Path": "msi/Identity.ps1",
+      "SHA256": "E222320713956096E1AE0DD668080F3EEFA235EA694E14D3703652B433AC6FA7"
+    },
+    {
+      "Path": "msi/Inspection.ps1",
+      "SHA256": "3745A15DDE16180A0A173B3AA5EC86BDBACC4AC800B6173684E27D2E89C48EB0"
+    },
+    {
+      "Path": "msi/package.ps1",
+      "SHA256": "495C9F31A7088C9AE4A3784101DA73B6EDEED187B19F56020283E71CF6F38ACB"
+    },
+    {
+      "Path": "msi/Payload.ps1",
+      "SHA256": "A152A301764DEBF34202AD0C8AB2AED60E9916F29BEF50EF692419E210F807CD"
+    },
+    {
+      "Path": "msi/tests/test-config.ps1",
+      "SHA256": "7D6299FD1C35072104B535A40E217A5C433E8A0C9E02DC412C194429EC899BD0"
+    },
+    {
+      "Path": "msi/tests/test-msi.ps1",
+      "SHA256": "05CF8587877227A626B97D0EA74704EF76F070D3C7ED79984C841EDD44C210B5"
+    }
+  ]
+}

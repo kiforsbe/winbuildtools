@@ -1,5 +1,6 @@
 #requires -Version 7.4
 . "$PSScriptRoot/TestSupport.ps1"
+Set-StrictMode -Version Latest
 $root=Split-Path $PSScriptRoot -Parent
 if(Test-Path "$root/common/Tools.ps1") { . "$root/common/Tools.ps1"; . "$root/common/Artifacts.ps1" }
 Check ([bool](Get-Command Invoke-WbtTool -ErrorAction SilentlyContinue)) 'Missing common tool runner.'
