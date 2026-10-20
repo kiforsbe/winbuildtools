@@ -87,7 +87,7 @@ The engine does not verify dependency advisories, license compatibility or
 application behavior. The consuming repository owns those checks. See
 [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE) for provenance and source terms.
 
-## Maintenance and future extraction
+## Maintenance and standalone use
 
 | File | Responsibility |
 | --- | --- |
@@ -116,7 +116,7 @@ Relative command paths follow the current PowerShell filesystem location, includ
 after Set-Location. Payload approval and component identities normalize both slash
 styles. Paths in JSON remain relative to the payload, not relative to the config.
 
-Before extracting, copy this entire directory including LICENSE/NOTICE and tests.
+When copying, include this entire directory including LICENSE/NOTICE and tests.
 Run both test scripts in the destination and exercise a second product config
 using relative paths from a different directory. Keep publishing, signing, license
 review and dependency acquisition in consumer adapters. Do not add imports back
