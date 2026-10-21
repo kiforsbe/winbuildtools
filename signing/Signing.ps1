@@ -1,6 +1,16 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Explicit certificate selection, artifact signing and signer verification.
+.DESCRIPTION
+Dot-source to load common helpers and define the signing operations. These
+helpers never create certificates or import trust. Signing mutates the artifact;
+a thrown post-sign verification error does not roll back the original bytes.
+#>
 . (Join-Path $PSScriptRoot '../common/Tools.ps1')
 function Assert-WbtSigningOptions {
+    # Reject ambiguous selectors before reading keys or touching artifact bytes.
     param([string]$CertificateThumbprint,[string]$CertificatePath,[string]$CertificatePassword,[string]$TimestampUri)
     if($CertificateThumbprint -and $CertificatePath) { throw 'Select a thumbprint or PFX, not both.' }
     if($CertificatePassword -and !$CertificatePath) { throw 'CertificatePassword requires a PFX path.' }
@@ -12,10 +22,14 @@ function Assert-WbtSigningOptions {
     }
 }
 function Assert-WbtSigningMetadata($Certificate,[string]$Publisher) {
+    # Accept a plain metadata object so selection policy is testable without
+    # using a real private key. The EKU OID below denotes code signing.
     if(!$Certificate.HasPrivateKey -or $Certificate.NotBefore -gt (Get-Date) -or $Certificate.NotAfter -le (Get-Date) -or '1.3.6.1.5.5.7.3.3' -notin $Certificate.UsageOids) { throw 'Select an unexpired code-signing certificate with its private key.' }
     if($Publisher -and $Certificate.Subject -cne $Publisher) { throw 'Package publisher and signing certificate subject must match.' }
 }
 function Get-WbtSigningCertificate {
+    # Ownership transfers to the successful caller, which must Dispose(). On any
+    # failure here, release the loaded certificate before propagating the error.
     param([string]$CertificateThumbprint,[string]$CertificatePath,[string]$CertificatePassword,[string]$Publisher)
     Assert-WbtSigningOptions -CertificateThumbprint $CertificateThumbprint -CertificatePath $CertificatePath -CertificatePassword $CertificatePassword
     $certificate=$null
@@ -33,6 +47,8 @@ function Get-WbtSigningCertificate {
     } catch { if($certificate) { $certificate.Dispose() }; throw }
 }
 function Get-WbtArtifactPublisher([string]$Artifact) {
+    # MSIX binds publisher to the signing subject. Read the embedded manifest,
+    # not a caller's source manifest; other supported artifact types return ''.
     if([IO.Path]::GetExtension($Artifact) -ine '.msix') { return '' }
     $archive=[IO.Compression.ZipFile]::OpenRead($Artifact)
     try {
@@ -48,6 +64,8 @@ function Get-WbtArtifactPublisher([string]$Artifact) {
     } finally { $archive.Dispose() }
 }
 function Test-WbtSignature {
+    # Signer equality and accepted signature status are always checked. Chain
+    # trust is an additional, explicit host-policy check, not implied by a key.
     param([string]$Artifact,[string]$CertificateThumbprint,[switch]$RequireTrusted)
     $path=Resolve-WbtPath $Artifact
     $signature=Get-AuthenticodeSignature -LiteralPath $path
@@ -71,6 +89,8 @@ function Invoke-WbtSignature {
     $certificate=Get-WbtSigningCertificate -CertificateThumbprint $CertificateThumbprint -CertificatePath $CertificatePath -CertificatePassword $CertificatePassword -Publisher $publisher
     try {
         $tool=Get-WbtSdkTool signtool.exe
+        # SHA-1 selects the certificate thumbprint; it is NOT the file digest.
+        # Both artifact digest and optional RFC 3161 timestamp digest use SHA256.
         $arguments=@('sign','/fd','SHA256')
         if($CertificateThumbprint) { $arguments+=@('/sha1',$certificate.Thumbprint,'/s','My') }
         else {
@@ -82,6 +102,8 @@ function Invoke-WbtSignature {
         $PSNativeCommandUseErrorActionPreference=$false
         & $tool @arguments $path | Out-Host
         if($LASTEXITCODE -ne 0) { throw 'Artifact signing failed; do not release this output.' }
+        # Only report success after rereading the signature from the modified file.
+        # The resulting hash supersedes every pre-signing inspection hash.
         $signature=Test-WbtSignature $path $certificate.Thumbprint -RequireTrusted:$RequireTrusted
         [pscustomobject]@{Artifact=$path;SHA256=(Get-FileHash -LiteralPath $path).Hash;SignerThumbprint=$certificate.Thumbprint;SignatureStatus=[string]$signature.Status;Publisher=$publisher}
     } finally { $certificate.Dispose() }

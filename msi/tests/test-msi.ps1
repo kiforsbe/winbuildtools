@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Author and inspect standalone x64/ARM64 MSI fixtures without installing products.
+.DESCRIPTION
+Requires Windows Installer Automation, MakeCab and Expand. Checks tables, cabinet
+bytes, identity stability/isolation and the public CLI from a copied msi/ folder.
+Native costing runs only for the host architecture; lifecycle/ICE tests are separate.
+#>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
 foreach($name in @('Configuration','Identity','Payload','Database','Authoring','Inspection')) {
@@ -14,6 +23,8 @@ try {
  $config=Read-MsiConfiguration "$engine/example.json"
  foreach($name in @('Example.exe','Assets/Example.ico')) { [IO.File]::WriteAllText("$fixture/payload/$name",'Synthetic fixture '+$name) }
  $prior=@{}
+ # Both architectures are authored on this host. Synthetic executable/icon bytes
+ # are never launched; foreign-architecture success proves metadata and payload.
  foreach($arch in @('x64','ARM64')) {
   $path="$fixture/$arch.msi"
   New-MsiPackage $config "$fixture/payload" $path '0.1.0' $arch
@@ -43,6 +54,8 @@ try {
   $prior[$arch]=$info
  }
  Check ($prior.x64.Properties.UpgradeCode -ne $prior.ARM64.Properties.UpgradeCode) 'Architecture upgrade isolation.'
+ # A version bump changes product identity while retaining upgrade/component
+ # identity; a different product namespace below must change both families.
  New-MsiPackage $config "$fixture/payload" "$fixture/new.msi" '0.2.0' 'x64'
  $new=Read-MsiPackage "$fixture/new.msi"
  Check ($new.Properties.ProductCode -ne $prior.x64.Properties.ProductCode) 'Version changes product code.'

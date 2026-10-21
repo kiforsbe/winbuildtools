@@ -1,5 +1,6 @@
 #requires -Version 7.4
 #requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
 Explicitly trusts one reviewed public development signing certificate.
@@ -7,6 +8,12 @@ Explicitly trusts one reviewed public development signing certificate.
 Administrator-only import into LocalMachine/TrustedPeople, never Root. Requires
 the exact expected thumbprint. Run separately from builds and packaging; review
 the certificate identity and intended deployment scope first. Supports -WhatIf.
+.PARAMETER CertificatePath
+Reviewed public .cer file with a current validity interval and code-signing EKU.
+.PARAMETER ExpectedThumbprint
+Exact 40-character hexadecimal thumbprint obtained through a trusted channel.
+.OUTPUTS
+Object: Thumbprint and Store after successful import; no result under WhatIf.
 .EXAMPLE
 ./signing/trust-dev-certificate.ps1 -CertificatePath C:/build/development.cer -ExpectedThumbprint YOUR_40_HEX_THUMBPRINT
 #>
@@ -21,6 +28,8 @@ $certificate=[Security.Cryptography.X509Certificates.X509Certificate2]::new($pat
 try {
     $oids=@($certificate.Extensions | Where-Object { $_ -is [Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension] } | ForEach-Object { $_.EnhancedKeyUsages } | ForEach-Object Value)
     if($certificate.Thumbprint -ine $ExpectedThumbprint -or $certificate.HasPrivateKey -or $certificate.NotBefore -gt (Get-Date) -or $certificate.NotAfter -le (Get-Date) -or '1.3.6.1.5.5.7.3.3' -notin $oids) { throw 'Certificate must match the reviewed thumbprint and be a current public code-signing certificate.' }
+    # Trust one leaf certificate, not a CA in Root. Keep store mutation separate
+    # from builds/signing and verify the intended entry exists after import.
     if($PSCmdlet.ShouldProcess("LocalMachine/TrustedPeople: $($certificate.Subject) [$ExpectedThumbprint]",'Trust development signing certificate')) {
         $null=Import-Certificate -FilePath $path -CertStoreLocation Cert:/LocalMachine/TrustedPeople
         if(!(Test-Path -LiteralPath "Cert:/LocalMachine/TrustedPeople/$ExpectedThumbprint")) { throw 'Certificate trust import did not succeed.' }

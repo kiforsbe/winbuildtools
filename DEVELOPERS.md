@@ -1,5 +1,8 @@
 # Developing winbuildtools
 
+Read [ARCHITECTURE.md](ARCHITECTURE.md) for module ownership, packaging/build
+flows, failure semantics and the constraints to preserve when changing scripts.
+
 Use Windows 11, PowerShell 7.4+ and Windows SDK 10.0.26100.0+. Optional .NET
 integration requires an installed stable supported SDK with .NET 8+ CLI features;
 select it through your environment/global.json. No modules need to be restored.

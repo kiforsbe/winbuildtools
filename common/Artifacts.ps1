@@ -1,6 +1,16 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Write new JSON metadata describing the artifact's current bytes.
+.DESCRIPTION
+Dot-source to define Write-WbtArtifactManifest. Source/version fields are supplied
+by the consumer; neither source cleanliness nor trust is established here.
+#>
 . (Join-Path $PSScriptRoot 'Paths.ps1')
 function Write-WbtArtifactManifest {
+    # Hash after all byte-changing steps, particularly signing. Return only the
+    # artifact/manifest paths and hash; the richer record lives in the JSON file.
     param([string]$Artifact,[string]$OutputPath,[string]$Version,[string]$SourceCommit,[switch]$SourceDirty)
     $artifactPath=Resolve-WbtPath $Artifact
     $output=Resolve-WbtPath $OutputPath

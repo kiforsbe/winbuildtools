@@ -5,9 +5,10 @@ execution and actual installer lifecycle acceptance remain separate.
 
 ## Checked locally
 
-- Extraction: the engine implementation, schema, example JSON and tests match
-  Agenda f1586a4; license/notice/README changes are explicit MIT/standalone updates.
-  [provenance.json](provenance.json) records SHA-256 of the extracted implementation.
+- Extraction: at extraction, the engine implementation, schema, example JSON and
+  tests matched Agenda f1586a4; license/notice/README changes were explicit
+  MIT/standalone updates. [provenance.json](provenance.json) records current hashes
+  and retains original extraction hashes for subsequently modified scripts.
 - MSI: 29 configuration checks and 43 native synthetic checks covering x64/ARM64
   tables, cabinet bytes, stable identities, no custom actions, isolated read-only
   preflight, path normalization and second-product/public-CLI use.
@@ -55,3 +56,28 @@ print their diagnostic tails. Successful verification ends with the pass summary
 
 No product, certificate or trust entry is installed by verification. The fixture
 managed console executable is run only to confirm the build/publish result.
+
+## Maintenance documentation verification — 2026-10-21
+
+The architecture guide and maintenance comments were checked against the code.
+An independent reviewer found no substantive issues; its wording suggestion was
+applied. The earlier extraction review limitation above remains a historical record.
+
+- `./verify.ps1 -Integration` passed on Windows x64 10.0.26300.0 with PowerShell
+  7.6.5, Windows SDK tools 10.0.26100.0 and .NET SDK 10.0.301. Coverage and exclusions
+  remain those described above. The pinned consumer cloned committed revision
+  `0f623a61f46e6ef24fe4ae626244fb3bb8e5628d`; other tests used the working tree.
+- PowerShell parser comparisons against HEAD confirmed identical executable
+  tokens for all 31 scripts and the workflow's embedded checkout script, excluding
+  comments/newlines. All scripts parsed without errors. This checks executable
+  text, not help output: comment help was deliberately expanded and separated
+  from `#requires` so PowerShell recognizes it.
+- All 11 public/example commands exposed a parsed synopsis and description through
+  `Get-Help -Full`. Repository checks passed for current provenance hashes and local
+  documentation targets. `git diff --check` passed.
+- Original extraction hashes remain in `ExtractionSHA256` for the nine locally
+  commented MSI scripts; `SHA256` records their current bytes. Schema/example
+  inputs are unchanged. No dependency was added or upgraded.
+
+This documentation change does not establish any of the installer lifecycle,
+native ARM64, live signing/trust or hosted-CI acceptance excluded above.

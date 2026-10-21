@@ -1,4 +1,5 @@
 #requires -Version 7.4
+
 <#
 .SYNOPSIS
 Runs an explicit .NET restore, build or publish with a shared isolated context.
@@ -15,6 +16,26 @@ consumer-owned. Do not supply secrets in properties or logged tool output.
 MSBuild property names and scalar values, identical across operations. Semicolons,
 newlines and reserved context property overrides are rejected; arrays/items and
 complex settings belong in consumer MSBuild files rather than command arguments.
+.PARAMETER Operation
+One explicit Restore, Build or Publish step; no implicit multi-step pipeline.
+.PARAMETER Project
+Single existing csproj/fsproj/vbproj. Its directory controls SDK/global.json lookup.
+.PARAMETER ArtifactsDirectory
+Shared artifacts root, identical for restore/build/publish of the same context.
+.PARAMETER OutputDirectory
+New publish destination. Valid only for Publish and separate from build artifacts.
+.PARAMETER Configuration
+Debug or Release, default Release; keep identical across operations.
+.PARAMETER RuntimeIdentifier
+Optional runtime identifier, also part of the shared restore/build context.
+.PARAMETER NuGetConfig
+Optional restore configuration; only forwarded to the Restore invocation.
+.PARAMETER DotnetPath
+Installed dotnet executable, default dotnet resolved from the command search path.
+.PARAMETER LogPath
+Optional caller-relative log path; defaults to a unique file under artifacts/logs.
+.OUTPUTS
+Object: Operation, Project, ArtifactsDirectory, OutputDirectory and LogPath.
 .EXAMPLE
 ./dotnet/invoke.ps1 -Operation Restore -Project C:/app/App.csproj -ArtifactsDirectory C:/build/intermediate
 .EXAMPLE
@@ -53,6 +74,8 @@ if($OutputDirectory) {
     Assert-WbtOutsideTree $output $artifacts
     if(Test-Path -LiteralPath $output) { throw 'Publish output must be new.' }
 }
+# MSBuild parses separators within a single -p argument. Reject list/injection
+# syntax and context overrides even though native arguments are passed as an array.
 $propertyArgs=[Collections.Generic.List[string]]::new()
 foreach($name in $Properties.Keys | Sort-Object) {
     if($name -notmatch '^[A-Za-z_][A-Za-z0-9_]*$' -or [string]$Properties[$name] -match '[;,\r\n]' -or $Properties[$name] -is [array]) { throw "Invalid MSBuild property: $name" }
@@ -72,6 +95,8 @@ if($Operation -eq 'Restore') {
 }
 if(!$LogPath) { $LogPath=Join-Path $artifacts ("logs/$($Operation.ToLowerInvariant())-"+[guid]::NewGuid().ToString('N')+'.log') }
 $LogPath=Resolve-WbtPath $LogPath
+# Keep the entire context in every invocation. A build must consume the assets
+# created by its explicit restore; --no-restore prevents silently changing them.
 $arguments=@($Operation.ToLowerInvariant(),$projectPath,'--artifacts-path',$artifacts,'--nologo',"-p:Configuration=$Configuration",'-p:RestorePackagesWithLockFile=true')+@($propertyArgs)
 if($RuntimeIdentifier) { $arguments+=@('--runtime',$RuntimeIdentifier) }
 if($Operation -eq 'Restore') {
@@ -81,6 +106,8 @@ if($Operation -eq 'Restore') {
     $arguments+='--no-restore'
     if($OutputDirectory) { $arguments+=@('--output',$output) }
 }
+# Resolve caller-relative paths before changing location. Run in the project
+# directory for SDK selection and always restore the caller's PowerShell location.
 Push-Location (Split-Path $projectPath -Parent)
 try { Invoke-WbtTool $DotnetPath $arguments $LogPath } finally { Pop-Location }
 [pscustomobject]@{Operation=$Operation;Project=$projectPath;ArtifactsDirectory=$artifacts;OutputDirectory=$output;LogPath=(Resolve-WbtPath $LogPath)}

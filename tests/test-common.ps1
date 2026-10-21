@@ -1,4 +1,12 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Exercise caller-relative paths, native diagnostics, SDK discovery and metadata.
+.DESCRIPTION
+Runs on Windows with the SDK; uses synthetic bytes and a child PowerShell, not a
+real application or signing key. Fail-fast assertions clean the fixture in finally.
+#>
 . "$PSScriptRoot/TestSupport.ps1"
 Set-StrictMode -Version Latest
 $root=Split-Path $PSScriptRoot -Parent
@@ -9,6 +17,8 @@ $null=New-Item -ItemType Directory -Path "$fixture/path with spaces" -Force
 try {
     Push-Location $fixture
     try { Check ((Resolve-WbtPath './path with spaces/new') -eq "$fixture\path with spaces\new") 'Paths follow PowerShell location.' } finally { Pop-Location }
+    # Use the current PowerShell executable so the test does not depend on a
+    # different version found on PATH. The exit-7 diagnostic is deliberately shown.
     $pwsh=(Get-Process -Id $PID).Path
     Invoke-WbtTool $pwsh @('-NoProfile','-Command',"Write-Output 'full diagnostics'; exit 0") "$fixture/tool.log"
     Check ((Get-Content "$fixture/tool.log" -Raw).Contains('full diagnostics')) 'Full tool log.'
@@ -16,6 +26,8 @@ try {
     Check ((Get-Content "$fixture/tool.log" -Raw).Contains('failure detail')) 'Failed tool log retained.'
     Rejected { Invoke-WbtTool "$fixture/missing.exe" @() } 'not found'
     Rejected { Resolve-WbtPath 'Env:PATH' } 'filesystem'
+    # This is not an MSI: metadata must report its actual unsigned bytes without
+    # treating the extension as proof of signature or package validity.
     Set-Content "$fixture/artifact.msi" 'final bytes'
     $result=Write-WbtArtifactManifest -Artifact "$fixture/artifact.msi" -OutputPath "$fixture/release.json" -Version 1.2.3 -SourceCommit ('a'*40)
     $record=Get-Content $result.Manifest -Raw | ConvertFrom-Json

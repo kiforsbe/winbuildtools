@@ -1,3 +1,4 @@
+# Deliberately manual: publication and installer lifecycle acceptance are separate.
 name: Verify
 
 on:
@@ -36,6 +37,8 @@ jobs:
           } finally {
             Remove-Item Env:GIT_CONFIG_COUNT, Env:GIT_CONFIG_KEY_0, Env:GIT_CONFIG_VALUE_0, Env:CHECKOUT_TOKEN -ErrorAction SilentlyContinue
           }
+          # Checkout the verified event revision rather than a moving branch;
+          # clear authentication first so no build/test child inherits the token.
           git checkout --detach $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { throw 'Git checkout failed.' }
       - name: Verify packaging and consumer integration

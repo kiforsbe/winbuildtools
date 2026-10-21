@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Strict JSON and path validation for the standalone MSI engine.
+.DESCRIPTION
+Dot-source before Payload.ps1/Authoring.ps1. Read-MsiConfiguration returns the
+validated hashtable; schema validation and semantic checks are both required.
+Keep this file independent of ../common so copying msi/ remains supported.
+#>
 function Resolve-MsiPath([string]$Path) {
     # PowerShell Set-Location does not update .NET's process current directory.
     # The provider API also resolves destinations that do not exist yet.
@@ -15,10 +24,14 @@ function Assert-MsiRelativePath([string]$Path) {
     }
 }
 function Read-MsiConfiguration([string]$Path) {
+    # The schema owns field types/allowed keys; the checks below additionally
+    # enforce Windows naming rules and relationships the schema cannot express.
     $json=[IO.File]::ReadAllText((Resolve-MsiPath $Path))
     # ConvertFrom-Json keeps the last duplicate property; inspect original syntax first.
     $document=[Text.Json.JsonDocument]::Parse($json)
     function Assert-UniqueJsonKeys($Node) {
+        # Compare case-insensitively to agree with PowerShell hashtable lookup;
+        # reject duplicates at every nesting level before conversion loses them.
         if($Node.ValueKind -eq [Text.Json.JsonValueKind]::Object) {
             $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
             foreach($p in $Node.EnumerateObject()) { if(!$seen.Add($p.Name)) { throw "Duplicate JSON property: $($p.Name)" }; Assert-UniqueJsonKeys $p.Value }

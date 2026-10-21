@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Enumerate and approve a bounded payload for single-cabinet MSI authoring.
+.DESCRIPTION
+Requires Configuration.ps1 and Identity.ps1. Returns Id, Component, Relative,
+FullName, Name and Length records after validating the entire file set. It does
+not build or run the application, or decide whether approved content is safe.
+#>
 function Get-MsiPayload($Configuration,[string]$Folder,[ValidateSet('x64','ARM64')][string]$Architecture) {
     $Folder=Resolve-MsiPath $Folder
     $root=Get-Item -LiteralPath $Folder -Force
@@ -12,6 +21,9 @@ function Get-MsiPayload($Configuration,[string]$Folder,[ValidateSet('x64','ARM64
             if($item.PSIsContainer) { $pending.Enqueue($item.FullName) } else { $all.Add($item) }
         }
     }
+    # Cabinet member order and File.Sequence must agree in authoring/inspection.
+    # Sorting by normalized relative name keeps that agreement independent of
+    # filesystem enumeration order; case aliases are rejected separately.
     $files=@($all | Sort-Object { [IO.Path]::GetRelativePath($Folder,$_.FullName).ToLowerInvariant() })
     if(!$files.Count -or $files.Count -gt 10000 -or ($files | Measure-Object Length -Sum).Sum -gt 2GB) { throw 'Payload exceeds bounded single-cabinet limits.' }
     $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -24,6 +36,8 @@ function Get-MsiPayload($Configuration,[string]$Folder,[ValidateSet('x64','ARM64
         if($file.FullName -match '[\r\n"%]' -or !$seen.Add($relative)) { throw 'Unsupported cabinet path or duplicate payload name.' }
         if([IO.Path]::GetExtension($relative) -notin $Configuration.payload.allowedExtensions -and !$approved.Contains($relative)) { throw "Unapproved payload file: $relative" }
     }
+    # The executable/icon are implicitly required, even if omitted from the
+    # explicit list. Validate everything before emitting any pipeline records.
     foreach($required in @($Configuration.payload.requiredFiles)+@($Configuration.application.executable)+@($Configuration.application.icon)) {
         if($required -and !$seen.Contains($required.Replace('\','/'))) { throw "Payload missing required file: $required" }
     }

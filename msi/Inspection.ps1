@@ -1,5 +1,16 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Read MSI metadata, compare embedded payloads and run isolated costing preflight.
+.DESCRIPTION
+Requires Configuration, Identity, Payload and Database helpers. Inspection never
+performs an install transaction. Returned table snapshots are plain objects;
+COM/native handles are released before returning to the caller.
+#>
 function Read-MsiPackage([string]$Path) {
+ # Mode 0 opens the database read-only. Gather both expected and forbidden-table
+ # presence so inspection cannot silently accept an expanded authoring surface.
  $installer=$null;$database=$null;$summary=$null
  try {
   $installer=New-Object -ComObject WindowsInstaller.Installer;$database=$installer.OpenDatabase($Path,0)
@@ -13,6 +24,9 @@ function Read-MsiPackage([string]$Path) {
 # Read an embedded stream through msi.dll rather than opening an install session.
 # Native handles are closed on every failure path; extracted bytes are bounded.
 function Export-MsiCabinet([string]$Path,[string]$Destination) {
+ # Define the interop type once per process. System32-only DLL resolution avoids
+ # loading an msi.dll from the payload or current working directory. The C# loop
+ # copies bounded chunks and closes handles in reverse acquisition order.
  if(!('ReusableMsi.Packaging.MsiStream' -as [type])) {
   Add-Type -TypeDefinition @'
 using System;
@@ -72,6 +86,8 @@ function New-MsiPreflightCopy([string]$Path,[string]$Destination) {
     }
    }
   }
+  # Product/upgrade isolation alone is insufficient: registered components and
+  # cached package identities must also be unrelated to anything installed.
   $view=$database.OpenView('UPDATE `Component` SET `ComponentId`=? WHERE `Component`=?')
   $record=$engine.CreateRecord(2)
   foreach($component in @(Get-MsiRows $database Component @('Component'))) {
@@ -107,6 +123,8 @@ function Assert-MsiPreflight([string]$Path) {
   # Cost only disposable paths, never installed application or Start-menu files.
   $session.Property('INSTALLFOLDER')=Join-Path $preflightRoot 'target'
   $session.Property('APPMENUDIR')=Join-Path $preflightRoot 'menu'
+  # This explicit allowlist is the safety boundary. Never replace it with the
+  # execute sequence: InstallInitialize/InstallFinalize would start/commit work.
   foreach($action in @('AppSearch','CostInitialize','FileCost','CostFinalize','InstallValidate')) {
    if($session.DoAction($action) -ne 1) { throw "MSI native read-only preflight failed at $action." }
   }
@@ -134,6 +152,8 @@ function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string
  }
  if($actual.CustomActionCount -or $actual.RegistryCount -or $actual.Files.Count -ne $expected.Count -or $actual.Components.Count -ne $expected.Count -or $actual.FeatureComponents.Count -ne $expected.Count -or $actual.UpgradeCount -ne 2 -or $actual.ShortcutTarget -cne 'Main') { throw 'MSI contains unexpected actions, files, components or shortcuts.' }
  if($actual.Media.Count -ne 1 -or $actual.Media[0].Cabinet -cne '#payload.cab' -or [int]$actual.Media[0].LastSequence -ne $expected.Count) { throw 'MSI must contain exactly one embedded cabinet.' }
+ # Folder ownership is checked separately from file mappings: a correct payload
+ # must not authorize removal of unrelated application or Start-menu directories.
  $main=@($expected | Where-Object Relative -eq $Configuration.application.executable.Replace('\','/'))[0]
  $ownedDirectories=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
  $null=$ownedDirectories.Add('INSTALLFOLDER');$null=$ownedDirectories.Add('APPMENUDIR')
@@ -147,6 +167,8 @@ function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string
  if($actual.FolderComponents.Count -ne $ownedDirectories.Count -or @($actual.FolderComponents | Where-Object { !$ownedDirectories.Contains($_.Directory_) -or $_.Component_ -cne $main.Component }).Count) { throw 'MSI folder ownership must cover only owned install/menu directories.' }
  if($actual.Removals.Count -ne 1 -or $actual.Removals[0].FileName -or $actual.Removals[0].DirProperty -cne 'APPMENUDIR' -or $actual.Removals[0].Component_ -cne $main.Component -or $actual.Removals[0].InstallMode -ne '2') { throw 'MSI explicit cleanup must remove only the owned empty menu folder.' }
  if(($Architecture -eq 'x64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64') -or ($Architecture -eq 'ARM64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64')) { Assert-MsiPreflight $Path }
+ # Foreign-architecture packages still get table/cabinet checks. Only the native
+ # host architecture above can exercise Windows Installer's costing preflight.
  $null=New-Item -ItemType Directory -Path $InspectionFolder
  $cab=Join-Path $InspectionFolder 'payload.cab';$extracted=Join-Path $InspectionFolder 'files';$null=New-Item -ItemType Directory -Path $extracted
  Export-MsiCabinet $Path $cab

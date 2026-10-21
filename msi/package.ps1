@@ -32,16 +32,22 @@ param(
  [Parameter(Mandatory)][string]$OutputDirectory
 )
 $ErrorActionPreference='Stop'
+# Load the standalone engine in dependency order; importing ../common here would
+# break the supported copy-only-msi deployment and its standalone regression test.
 foreach($name in @('Configuration','Identity','Payload','Database','Authoring','Inspection')) { . (Join-Path $PSScriptRoot "$name.ps1") }
 $configuration=Read-MsiConfiguration (Resolve-MsiPath $Config)
 Assert-MsiVersion $Version
 $payload=Resolve-MsiPath $PayloadDirectory
 $output=Resolve-MsiPath $OutputDirectory
+# Validate the entire input set before creating output. Lower-level authoring
+# repeats payload validation so direct library callers receive the same checks.
 $null=Get-MsiPayload $configuration $payload $Architecture
 if($output.TrimEnd('\') -eq $payload.TrimEnd('\') -or $output.StartsWith($payload.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Output must be outside the payload tree.' }
 if(Test-Path -LiteralPath $output) { throw 'OutputDirectory must be new; previous artifacts are never overwritten.' }
 $null=New-Item -ItemType Directory -Path $output
 $artifact=Join-Path $output "$($configuration.product.id)-$Version-$($Architecture.ToLowerInvariant()).msi"
+# No success object/report is emitted until tables AND embedded bytes pass.
+# An inspection failure retains output for diagnosis; retry with a new directory.
 New-MsiPackage $configuration $payload $artifact $Version $Architecture
 Assert-MsiContents $artifact $payload $configuration $Version $Architecture (Join-Path $output 'inspection')
 $hash=(Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash

@@ -5,6 +5,10 @@ f1586a4 on 2026-10-20: https://github.com/kiforsbe/agenda.
 Its native MSI implementation was adapted from ProcSight revision 17cf576:
 https://github.com/kiforsbe/procsight. Preserve this attribution and msi/NOTICE.md.
 
+On 2026-10-21, maintenance comments were added to the extracted scripts without
+changing executable tokens. docs/provenance.json retains the extraction hashes
+alongside current hashes and records these local modifications.
+
 MSIX, signing, SDK discovery and tool logging are generalized adaptations of
 Agenda's packaging helpers at the same revision. New build, integration and
 verification helpers were added for winbuildtools. The source is distributed

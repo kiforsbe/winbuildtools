@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Test .NET command guards, optionally restoring/building/publishing a real fixture.
+.DESCRIPTION
+Default checks reject invalid arguments before invoking an SDK. -Integration
+requires a stable installed .NET 8+ SDK and runs a dependency-free console fixture
+targeting that SDK's framework. All project/build/log files are disposable.
+#>
 param([switch]$Integration)
 . "$PSScriptRoot/TestSupport.ps1"
 $root=Split-Path $PSScriptRoot -Parent
@@ -28,6 +37,8 @@ try {
         Check ($LASTEXITCODE -eq 0) 'Fixture lock creation.'
         Push-Location $fixture
         try {
+            # NETSDK1004 is expected here: a build against fresh artifacts must
+            # fail rather than silently restore. Then test the explicit sequence.
             Rejected { & $helper -Operation Build -Project './project with spaces/Example.csproj' -ArtifactsDirectory './never-restored' } 'failed'
             $null=& $helper -Operation Restore -Project './project with spaces/Example.csproj' -ArtifactsDirectory './artifacts'
             $null=& $helper -Operation Build -Project './project with spaces/Example.csproj' -ArtifactsDirectory './artifacts'

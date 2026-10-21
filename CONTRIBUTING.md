@@ -4,6 +4,10 @@ Keep reusable mechanisms here and application policy in consuming repositories.
 Open an issue with a reproducible synthetic payload/configuration before proposing
 a new installer behavior. Do not include real secrets, signing keys or user data.
 
+Keep affected documentation current with each change. Follow the
+[changelog entry rules](AGENTS.md#changelog-entries): add brief, user-facing
+entries under `Unreleased`, grouped by change type.
+
 For changes, add meaningful regression coverage and run ./verify.ps1 -Integration
 on a compatible Windows host, plus git diff --check. Record exact commands,
 platform/SDK versions and untested behavior. Test from a consumer pinned checkout

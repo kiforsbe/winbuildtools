@@ -1,4 +1,14 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Check source provenance, licenses, documentation links, CLI help and manual CI.
+.DESCRIPTION
+Reads repository files without fetching upstream sources or running the hosted
+workflow. SHA256 entries describe current local files; ExtractionSHA256, when
+present, preserves their original extraction hashes after documented local edits.
+Link checks verify local targets, not Markdown anchors or remote availability.
+#>
 . "$PSScriptRoot/TestSupport.ps1"
 $root=Split-Path $PSScriptRoot -Parent
 $provenance=Get-Content "$root/docs/provenance.json" -Raw | ConvertFrom-Json
@@ -8,6 +18,8 @@ foreach($file in $provenance.Files) {
 Check ((Get-Content "$root/LICENSE" -Raw).StartsWith('MIT License')) 'Root MIT license.'
 Check ((Get-Content "$root/LICENSE" -Raw) -ceq (Get-Content "$root/msi/LICENSE" -Raw)) 'Standalone engine MIT license matches.'
 Check (!(Get-Content "$root/LICENSE" -Raw).Contains('[fullname]')) 'Copyright placeholder filled.'
+# Follow local document paths relative to each containing file. Fragment-only
+# and web links have separate validation responsibilities and are skipped here.
 $links=0
 foreach($file in Get-ChildItem $root -Filter '*.md' -File -Recurse | Where-Object { $_.FullName -notmatch '[\\/](\.git|artifacts|work)[\\/]' }) {
     foreach($match in [regex]::Matches((Get-Content -LiteralPath $file.FullName -Raw),'\[[^\]]+\]\(([^)]+)\)')) {
@@ -22,6 +34,8 @@ foreach($path in @('msi/package.ps1','msix/package.ps1','msix/inspect.ps1','sign
     $help=Get-Help (Join-Path $root $path)
     Check (![string]::IsNullOrWhiteSpace($help.Synopsis)) "Public help missing: $path"
 }
+# The workflow deliberately owns no Actions package tree and must stay manual.
+# These checks do not prove hosted execution or GitHub repository settings.
 $workflow=Get-Content "$root/.github/workflows/verify.yml" -Raw
 $events=[regex]::Match($workflow,'(?ms)^on:\s*\r?\n(?<events>.*?)(?=^\S|\z)').Groups['events'].Value.Trim()
 Check ($events -eq 'workflow_dispatch:') 'All workflow runs must be manual.'

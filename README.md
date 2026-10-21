@@ -115,6 +115,9 @@ submodule clone. GitHub verification runs **manually only** through Actions →
 Verify → Run workflow after publication. See [validation](docs/VALIDATION.md),
 [contributing](CONTRIBUTING.md), [security](SECURITY.md) and [publication](docs/GITHUB.md).
 
+For implementation boundaries, data flow and maintenance constraints, see
+[architecture](ARCHITECTURE.md).
+
 ## License and provenance
 
 [MIT License](LICENSE). Extracted from Agenda/ProcSight with the copyright holder's

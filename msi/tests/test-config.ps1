@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Exercise strict MSI configuration, identity scoping and payload approval rules.
+.DESCRIPTION
+Standalone engine test: uses only msi/ helpers, not repository test support.
+Synthetic files and a temporary junction exercise validation without authoring or
+installing an MSI. Assertions fail immediately and cleanup validates its target.
+#>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
 if(Test-Path "$engine/Configuration.ps1") { . "$engine/Configuration.ps1"; . "$engine/Identity.ps1"; . "$engine/Payload.ps1" }
@@ -19,6 +28,8 @@ try {
   $relative=Read-MsiConfiguration 'example.json'
   Check ($relative.product.id -eq 'example') 'Config paths follow PowerShell current location.'
  } finally { Pop-Location }
+ # Reparse a pristine configuration for each mutation so a rejection identifies
+ # that specific rule, rather than a previous mutation left in the fixture.
  foreach($change in @(
   {param($x) $x.schemaVersion=2},
   {param($x) $x.extra='unknown'},
@@ -36,11 +47,15 @@ try {
   $obj | ConvertTo-Json -Depth 10 | Set-Content $path
   Rejected { Read-MsiConfiguration $path }
  }
+ # Duplicate keys must be introduced in raw JSON: a hashtable would collapse them
+ # before Read-MsiConfiguration could exercise its syntax-level duplicate check.
  $json.Replace('"schemaVersion": 1','"schemaVersion": 1, "schemaVersion": 1') | Set-Content $path
  Rejected { Read-MsiConfiguration $path }
  $json | Set-Content $path
  foreach($v in @('0.1.0','255.255.65534')) { Assert-MsiVersion $v; $script:checks++ }
  foreach($v in @('256.0.0','0.256.0','0.0.65535','01.0.0','1.0.0-preview','1.0.0.0')) { Rejected { Assert-MsiVersion $v } }
+ # These are compatibility properties, not golden hash values: normalization is
+ # stable within a product while architecture and product namespaces isolate it.
  $a=Get-MsiGuid $config.product.upgradeCode 'component/x64/app.exe'
  Check ($a -eq (Get-MsiGuid $config.product.upgradeCode 'COMPONENT/X64/APP.EXE')) 'Identities ignore path case.'
  Check ($a -ne (Get-MsiGuid $config.product.upgradeCode 'component/arm64/app.exe')) 'Architectures isolated.'

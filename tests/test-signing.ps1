@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Validate signing policy without creating, trusting or using a private key.
+.DESCRIPTION
+Metadata objects exercise certificate checks independently of the user's store.
+Missing-PFX and unsigned-artifact failures must preserve bytes and store entries.
+This suite does not establish real SignTool, timestamp or trust-chain acceptance.
+#>
 . "$PSScriptRoot/TestSupport.ps1"
 $root=Split-Path $PSScriptRoot -Parent
 if(Test-Path "$root/signing/Signing.ps1") { . "$root/signing/Signing.ps1" }
@@ -10,6 +19,8 @@ Rejected { Assert-WbtSigningOptions -CertificateThumbprint ('a'*40) -Certificate
 Rejected { Assert-WbtSigningOptions -CertificatePassword 'orphan' } 'requires'
 Rejected { Assert-WbtSigningOptions -CertificateThumbprint ('a'*40) -TimestampUri 'http://example.test' } 'HTTPS'
 Rejected { Assert-WbtSigningOptions -CertificateThumbprint ('a'*40) -TimestampUri 'https://user:pass@example.test' } 'HTTPS'
+# Mutate one metadata condition at a time, restoring other fields so each
+# rejection proves its own policy rather than an earlier invalid condition.
 $metadata=[pscustomobject]@{Subject='CN=Example';HasPrivateKey=$true;NotBefore=(Get-Date).AddDays(-1);NotAfter=(Get-Date).AddDays(1);UsageOids=@('1.3.6.1.5.5.7.3.3')}
 Assert-WbtSigningMetadata $metadata 'CN=Example'
 Rejected { Assert-WbtSigningMetadata $metadata 'CN=Other' } 'publisher'
@@ -26,6 +37,8 @@ $null=New-Item -ItemType Directory -Path $fixture
 try {
     Set-Content "$fixture/unsigned.msi" 'unsigned synthetic bytes'
     $before=(Get-FileHash "$fixture/unsigned.msi").Hash
+    # Read-only store snapshots are a non-mutation check, not permission to use
+    # any certificate present. Never substitute a real user key for this fixture.
     $storeBefore=@(Get-ChildItem Cert:/CurrentUser/My | ForEach-Object Thumbprint | Sort-Object)
     Rejected { & "$root/signing/sign.ps1" -Artifact "$fixture/unsigned.msi" -CertificatePath "$fixture/missing.pfx" } 'exist|find'
     Rejected { Test-WbtSignature "$fixture/unsigned.msi" ('a'*40) } 'signature'

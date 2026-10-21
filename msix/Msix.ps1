@@ -1,6 +1,17 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+MSIX staging, manifest validation and exact package-content inspection.
+.DESCRIPTION
+Dot-source to load common tool/path helpers and define these functions. The
+consumer supplies all product policy in its manifest and payload. New-WbtMsix
+returns Test-WbtMsix's result only after the completed package passes inspection.
+#>
 . (Join-Path $PSScriptRoot '../common/Tools.ps1')
 function Read-WbtMsixManifest([string]$Manifest) {
+    # Return only the identity fields needed by callers. MakeAppx validates the
+    # complete packaging schema; the original manifest is preserved for comparison.
     $path=Resolve-WbtPath $Manifest
     Assert-WbtNoLinks $path
     # Caller manifests are data, not executable XML. Never resolve external DTDs.
@@ -22,6 +33,8 @@ function Get-WbtMsixPayload([string]$PayloadDirectory) {
     $files
 }
 function Test-WbtMsix {
+    # OutputDirectory is disposable inspection evidence, never an extraction over
+    # the expected payload. Unpack first, then compare identity, XML and file set.
     param([string]$Artifact,[string]$PayloadDirectory,[string]$Manifest,[string]$OutputDirectory)
     $artifactPath=Resolve-WbtPath $Artifact; $payload=Resolve-WbtPath $PayloadDirectory; $output=Resolve-WbtPath $OutputDirectory; $manifestPath=Resolve-WbtPath $Manifest
     Assert-WbtNoLinks $artifactPath; Assert-WbtNoLinks $output
@@ -38,6 +51,8 @@ function Test-WbtMsix {
     # formatting bytes; all actual payload files are compared byte-for-byte.
     Add-Type -AssemblyName System.Security.Cryptography.Xml
     function Get-CanonicalManifest([string]$Path) {
+        # Whitespace/serialization may change during packing; capabilities,
+        # extensions and every other manifest element must still compare equal.
         $doc=[Xml.XmlDocument]::new(); $doc.PreserveWhitespace=$false; $doc.XmlResolver=$null; $doc.Load($Path)
         $transform=[Security.Cryptography.Xml.XmlDsigC14NTransform]::new(); $transform.LoadInput($doc)
         $stream=$transform.GetOutput([IO.Stream]); $buffer=[IO.MemoryStream]::new()
@@ -50,6 +65,8 @@ function Test-WbtMsix {
         $unpacked=Join-Path $extracted $file.Relative
         if(!(Test-Path -LiteralPath $unpacked -PathType Leaf) -or (Get-FileHash -LiteralPath $unpacked).Hash -ne (Get-FileHash -LiteralPath $file.Path).Hash) { throw "MSIX payload mismatch: $($file.Relative)" }
     }
+    # Checking expected files alone misses injected content. Permit only this
+    # explicit set of generated container metadata when walking the reverse set.
     foreach($file in Get-WbtPayloadFiles $extracted) {
         $relative=$file.Relative.Replace('\','/')
         if($relative -in @('AppxManifest.xml','AppxBlockMap.xml','[Content_Types].xml','AppxSignature.p7x','AppxMetadata/CodeIntegrity.cat')) { continue }
@@ -58,6 +75,8 @@ function Test-WbtMsix {
     [pscustomobject]@{Artifact=$artifactPath;Name=$actual.Name;Publisher=$actual.Publisher;Version=$actual.Version;Architecture=$actual.Architecture;SHA256=(Get-FileHash -LiteralPath $artifactPath).Hash;InspectionDirectory=$output}
 }
 function New-WbtMsix {
+    # Stage copies so MakeAppx owns no input files. Keep stage/logs/inspection on
+    # failure for diagnosis, and require a fresh output directory for every run.
     param([string]$PayloadDirectory,[string]$Manifest,[string]$OutputDirectory)
     $payload=Resolve-WbtPath $PayloadDirectory; $output=Resolve-WbtPath $OutputDirectory; $manifestPath=Resolve-WbtPath $Manifest
     Assert-WbtNoLinks $output; Assert-WbtOutsideTree $output $payload

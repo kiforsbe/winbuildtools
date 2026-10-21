@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Author a native MSI database with one embedded cabinet and standard actions.
+.DESCRIPTION
+Requires Configuration, Identity, Payload and Database helpers. New-MsiPackage
+writes the requested MSI plus a retained msi-authoring-* work directory; it does
+not inspect the completed artifact. The public package.ps1 performs that gate.
+#>
 function New-MsiPackage {
  # Author standard tables/actions only: no executable custom actions, product
  # installation, trust changes or automatic application launch.
@@ -8,6 +17,9 @@ function New-MsiPackage {
  $files=@(Get-MsiPayload $Configuration $Folder $Architecture)
  $work=Join-Path (Split-Path $Path -Parent) ('msi-authoring-'+[guid]::NewGuid().ToString('N'))
  $null=New-Item -ItemType Directory -Path $work
+ # Cabinet member names are MSI file IDs, not relative paths. Inspection maps
+ # them back through File/Component tables before comparing the extracted bytes.
+ # Keep all MakeCab scratch output in the work tree for failure diagnosis.
  $cab=Join-Path $work 'payload.cab';$ddf=Join-Path $work 'payload.ddf'
  $directives=@('.OPTION EXPLICIT','.Set Cabinet=on','.Set Compress=on','.Set CompressionType=LZX','.Set CompressionMemory=21','.Set MaxDiskSize=0','.Set CabinetNameTemplate=payload.cab',('.Set DiskDirectoryTemplate="'+$work+'"'))
  $directives+=@($files | ForEach-Object { '"'+$_.FullName+'" '+$_.Id })
@@ -18,6 +30,8 @@ function New-MsiPackage {
  try {
   $installer=New-Object -ComObject WindowsInstaller.Installer
   $database=$installer.OpenDatabase($Path,3)
+  # Declare only the supported standard tables. Changes here must be mirrored
+  # in inspection expectations and tested for maintenance/uninstall semantics.
   $schemas=@{
    Property='`Property` CHAR(72) NOT NULL, `Value` CHAR(0) LOCALIZABLE PRIMARY KEY `Property`'
    Directory='`Directory` CHAR(72) NOT NULL, `Directory_Parent` CHAR(72), `DefaultDir` CHAR(255) NOT NULL LOCALIZABLE PRIMARY KEY `Directory`'
@@ -68,6 +82,8 @@ function New-MsiPackage {
     }
     $parent=$directories[$scope]
    }
+   # One 64-bit component (attribute 256) per file, with that file as key path.
+   # Never share a component GUID across products, architectures or renamed paths.
    Add-MsiRow $installer $database Component @('Component','ComponentId','Directory_','Attributes','KeyPath') @($file.Component,(Get-MsiPackageGuid $Configuration $Architecture ('component/'+$file.Relative)),$parent,256,$file.Id)
    Add-MsiRow $installer $database FeatureComponents @('Feature_','Component_') @('Main',$file.Component)
    # MSI needs the fixed binary version, not a vendor's descriptive FileVersion string.
@@ -79,6 +95,8 @@ function New-MsiPackage {
    $short='F'+$file.Id.Substring(1,7)+$extension
    if(!$shortNames.Add($parent+'/'+$short)) { throw 'MSI file short-name collision.' }
    Add-MsiRow $installer $database File @('File','Component_','FileName','FileSize','Version','Attributes','Sequence') @($file.Id,$file.Component,($short+'|'+$file.Name),[int]$file.Length,$fileVersion,512,$sequence)
+   # Unversioned content needs MSI's native four-part file hash for repair rules;
+   # this is separate from SHA-256 used for our artifact/payload comparisons.
    if(!$fileVersion) {
     $hash=$installer.FileHash($file.FullName,0)
     try { Add-MsiRow $installer $database MsiFileHash @('File_','Options','HashPart1','HashPart2','HashPart3','HashPart4') @($file.Id,0,$hash.IntegerData(1),$hash.IntegerData(2),$hash.IntegerData(3),$hash.IntegerData(4)) } finally { Close-MsiCom $hash }
@@ -103,6 +121,8 @@ function New-MsiPackage {
    Add-MsiRow $installer $database Property @('Property','Value') @('ARPPRODUCTICON',$iconName)
   }
   $shortcutIndex=0
+  # Target='Main' means an advertised feature shortcut, not a command-line path.
+  # Bind shortcuts/folder cleanup to the executable's component for maintenance.
   foreach($shortcut in $Configuration.shortcuts) {
    $shortcutShort='S'+(Get-MsiPackageId $Configuration $Architecture 'S' ('shortcut/'+$shortcut.name)).Substring(1,7)
    Add-MsiRow $installer $database Shortcut @('Shortcut','Directory_','Name','Component_','Target','Description','Icon_','ShowCmd','WkDir') @(('Shortcut'+(++$shortcutIndex)),'APPMENUDIR',($shortcutShort+'|'+$shortcut.name),$main.Component,'Main',$Configuration.product.name,$iconName,1,'INSTALLFOLDER')
@@ -128,6 +148,8 @@ function New-MsiPackage {
   $summary.Property(1)=1252; $summary.Property(2)=$Configuration.product.name+' installer'; $summary.Property(3)=$Configuration.product.name; $summary.Property(4)=$Configuration.product.manufacturer
   $summary.Property(7)=if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'};$summary.Property(9)=[guid]::NewGuid().ToString('B').ToUpperInvariant();$summary.Property(14)=500;$summary.Property(15)=2;$summary.Property(18)='Generic MSI packaging'
   $null=$summary.Persist();$null=$database.Commit()
+ # A failed database write is not a deliverable. Release COM locks before deleting
+ # the partial MSI; retain its authoring directory for diagnostics.
  } catch { if(Test-Path -LiteralPath $Path) { $failedPath=$Path }; throw }
  finally {
   Close-MsiCom $summary;Close-MsiCom $database;Close-MsiCom $installer

@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Verify an independent consumer with a pinned recursively cloned tool submodule.
+.DESCRIPTION
+Requires Git and the native MSI prerequisites. Creates only disposable local Git
+repositories, builds a synthetic MSI and never installs it. The cloned tool
+revision is committed HEAD: uncommitted tool changes are not tested by the clone.
+#>
 . "$PSScriptRoot/TestSupport.ps1"
 $root=Split-Path $PSScriptRoot -Parent
 Check (Test-Path "$root/examples/consumer-package.ps1") 'Missing pinned-checkout consumer example.'
@@ -27,6 +36,8 @@ try {
     $null=New-Item -ItemType Directory -Path "$fixture/payload/Assets" -Force
     Set-Content "$fixture/payload/Example.exe" 'synthetic consumer executable'
     Set-Content "$fixture/payload/Assets/Example.ico" 'synthetic consumer icon'
+    # The consumer owns product metadata; change namespace as well as display
+    # name so its components cannot share ownership with the example product.
     $config=Get-Content "$consumer/deployment/msi.json" -Raw | ConvertFrom-Json
     $config.product.id='consumer'; $config.product.name='Independent Consumer'; $config.product.upgradeCode=[guid]::NewGuid().ToString('B')
     $config | ConvertTo-Json -Depth 10 | Set-Content "$consumer/deployment/msi.json"

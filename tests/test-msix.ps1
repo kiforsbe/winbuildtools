@@ -1,4 +1,13 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Roundtrip synthetic MSIX inputs through MakeAppx and reject content mismatches.
+.DESCRIPTION
+Requires Windows SDK MakeAppx and System.Drawing for fixture PNG creation. Tests
+manifest preservation, exact file-set matching, reserved metadata and path/XML
+rejections. Packages are unsigned and never installed; ARM64 is metadata-only.
+#>
 . "$PSScriptRoot/TestSupport.ps1"
 $root=Split-Path $PSScriptRoot -Parent
 if(Test-Path "$root/msix/Msix.ps1") { . "$root/msix/Msix.ps1" }
@@ -33,6 +42,8 @@ try {
     Check ($check.Publisher -eq 'CN=Example' -and $check.Version -eq '1.2.3.0') 'Manifest identity retained.'
     Rejected { New-WbtMsix "$fixture/payload" "$fixture/manifest.xml" "$fixture/output with spaces" } 'exist'
     Rejected { New-WbtMsix "$fixture/payload" "$fixture/manifest.xml" "$fixture/payload/output" } 'outside'
+    # Exercise both directions of file-set comparison: an expected file missing
+    # from the archive, then an archived file absent from the expected payload.
     Set-Content "$fixture/payload/extra.txt" 'unexpected input'
     Rejected { Test-WbtMsix $result.Artifact "$fixture/payload" "$fixture/manifest.xml" "$fixture/extra inspection" } 'payload'
     Remove-Item -LiteralPath "$fixture/payload/extra.txt"
@@ -42,6 +53,8 @@ try {
     [IO.File]::WriteAllText("$fixture/arm64.xml",$manifest.Replace('ProcessorArchitecture="x64"','ProcessorArchitecture="arm64"'))
     $arm64=New-WbtMsix "$fixture/payload" "$fixture/arm64.xml" "$fixture/arm64 package"
     Check ($arm64.Architecture -eq 'arm64') 'ARM64 manifest packs and inspects without executing.'
+    # These negative fixtures are independent of schema correctness: reject DTDs
+    # before packing, stale container metadata before staging, and linked roots.
     [IO.File]::WriteAllText("$fixture/dtd.xml",$manifest.Replace('<Package ','<!DOCTYPE Package [<!ENTITY example "x">]><Package '))
     Rejected { New-WbtMsix "$fixture/payload" "$fixture/dtd.xml" "$fixture/dtd output" } 'DTD'
     Set-Content "$fixture/payload/Example.exe" 'changed'

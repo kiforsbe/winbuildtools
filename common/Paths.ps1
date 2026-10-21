@@ -1,4 +1,15 @@
 #requires -Version 7.4
+
+<#
+.SYNOPSIS
+Shared filesystem validation for MSIX, signing, manifests and .NET commands.
+.DESCRIPTION
+Dot-source this file; it performs no work until a function is called. Helpers
+return resolved paths or payload records, or throw before a caller writes output.
+The standalone MSI engine owns separate path validation under msi/.
+#>
+# Resolve through PowerShell's provider/location, not .NET's process directory.
+# Destinations may not exist yet, but non-filesystem providers must be rejected.
 function Resolve-WbtPath([string]$Path) {
     if([string]::IsNullOrWhiteSpace($Path)) { throw 'A filesystem path is required.' }
     $provider=$null; $drive=$null
@@ -18,11 +29,15 @@ function Assert-WbtNoLinks([string]$Path) {
     }
 }
 function Assert-WbtOutsideTree([string]$Path,[string]$Tree) {
+    # Include the separator in the prefix test so sibling names such as app-old
+    # are not confused with children of app. Equality also counts as overlap.
     $pathValue=(Resolve-WbtPath $Path).TrimEnd('\','/')
     $treeValue=(Resolve-WbtPath $Tree).TrimEnd('\','/')
     if($pathValue.Equals($treeValue,[StringComparison]::OrdinalIgnoreCase) -or $pathValue.StartsWith($treeValue+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Output must be outside the input tree.' }
 }
 function Get-WbtPayloadFiles([string]$Directory) {
+    # Return Relative/Path records for files only; empty directories are not a
+    # payload contract. Validate each child before queueing it to avoid links.
     $root=Resolve-WbtPath $Directory
     Assert-WbtNoLinks $root
     if(!(Test-Path -LiteralPath $root -PathType Container)) { throw 'Payload directory not found.' }
