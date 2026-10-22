@@ -7,16 +7,24 @@ external/winbuildtools/       # Git submodule pinned by the application commit
 deployment/msi.json          # Application-owned product configuration
 deployment/AppxManifest.xml  # Application-owned MSIX manifest, if used
 scripts/package.ps1          # Application adapter: publish, approve, package, sign
+scripts/setup-dev-certificate.ps1  # Optional explicit wrapper around shared command
+scripts/trust-dev-certificate.ps1  # Optional explicit administrative wrapper
 ```
 
-## Add after publication
+Use every applicable shared mechanism, not just MSI/MSIX creation. A complete
+migration removes local copies of certificate validation, signing/verification,
+development-key creation/trust, SDK discovery, process logging and artifact
+hash/signature metadata. Consumers keep product data and policy and delegate
+these mechanisms through the same pinned checkout.
 
-Replace placeholders with the actual hosting URL and a reviewed full commit.
+## Add the published tools
+
+Use the published URL and a reviewed release or full commit (for example v0.2.0).
 These commands are a deliberate integration/update operation, never a build step.
 
 ```powershell
-git submodule add https://github.com/OWNER/winbuildtools.git external/winbuildtools
-git -C external/winbuildtools checkout --detach REVIEWED_FULL_COMMIT
+git submodule add https://github.com/kiforsbe/winbuildtools.git external/winbuildtools
+git -C external/winbuildtools checkout --detach v0.2.0
 git add .gitmodules external/winbuildtools
 git commit -m "Pin Windows build tools"
 ```
@@ -37,15 +45,213 @@ git submodule update --init --recursive
 
 Use the paths under the application's external/winbuildtools checkout. Never
 search sibling folders, fall back to a vendored copy, or download latest tooling
-when the checkout is missing. The example [adapter](../examples/consumer-package.ps1)
-can be copied to the consumer root. If moved into scripts/, adjust its consumer
-root explicitly; product JSON remains in the application repository.
+when the checkout is missing. The [MSI-only adapter](../examples/consumer-package.ps1)
+demonstrates locating the checkout and invoking one packer; it is not a complete
+packaging migration. The complete ownership checklist and composition examples
+below also apply. If an adapter lives in scripts/, derive the consumer root with
+`Split-Path $PSScriptRoot -Parent`; the MSI-only example is copied to the root.
 
 The generic MSI config is JSON schemaVersion 1. MSIX uses the normal app manifest
 XML rather than duplicating capabilities and extensions in JSON. Tool version,
 config schema version and application package version are independent values.
 Consumers retain required-file checks, privilege policy, dependency/license
 review and final package/signature acceptance.
+
+## What consumers keep and delegate
+
+| Concern | Consumer keeps | Shared mechanism to invoke |
+| --- | --- | --- |
+| Product build | Project/SDK selection, runtime/architecture/configuration, restore audit policy and compatibility workarounds | `dotnet/invoke.ps1` where its context matches the project; otherwise use `Invoke-WbtTool` for product-specific build commands |
+| Payload approval | Required files, WinUI resources, notification-runtime checks, assets, package/runtime license materials | Product validation before calling either packer; no generic tool can infer these requirements |
+| MSI | Permanent upgradeCode, product/version/configuration and approved file list | `msi/package.ps1`, including its inspection gate |
+| MSIX | Publisher, version, architecture, capabilities, extensions and generated manifest | `msix/package.ps1`; `msix/inspect.ps1` for separately produced packages |
+| Signing preflight | Whether signing is requested, expected publisher, selected identity and timestamp/trust policy | `Assert-WbtSigningOptions`, `Get-WbtSigningCertificate`; dispose the returned certificate |
+| Signing/verification | Explicit signer and choice of `RequireTrusted` | `signing/sign.ps1`, `signing/verify.ps1` (or corresponding functions in `Signing.ps1`) |
+| Development key | Explicit subject, public CER destination and decision to create a new key | `signing/new-dev-certificate.ps1`, separately from packaging |
+| Development trust | Reviewed thumbprint, deployment/removal policy and explicit administrative invocation | `signing/trust-dev-certificate.ps1`, separately from packaging |
+| SDK/process utilities | Which tool is needed and where product logs belong | `Get-WbtSdkTool` and `Invoke-WbtTool` from `common/Tools.ps1` |
+| Final metadata | Source revision/dirty state, product release fields and compatibility aliases | `common/write-artifact-manifest.ps1`, then additive composition described below |
+
+For Agenda this means retaining `deployment/msi.json`, manifest generation,
+publishing/resources/required-file checks and license/audit policy, while replacing
+local generic `scripts/packaging/Signing.ps1` and SDK/logging/hash implementations.
+Certificate setup/trust entry points may remain for command compatibility, but
+must wrap the shared commands rather than reimplement certificate/store logic.
+Preserve the application's existing public arguments and result fields in its
+adapter. Remove copied helpers only after callers and tests use the shared ones.
+
+## Package, sign and record final bytes
+
+Resolve the checkout once from the consumer script, then use it for all operations.
+For a script located in the consumer's scripts/ directory:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$root = Split-Path $PSScriptRoot -Parent
+$tools = Join-Path $root 'external/winbuildtools'
+if (!(Test-Path -LiteralPath (Join-Path $tools 'VERSION') -PathType Leaf)) {
+    throw 'winbuildtools checkout is missing. Run: git submodule update --init --recursive'
+}
+. (Join-Path $tools 'common/Tools.ps1')
+. (Join-Path $tools 'signing/Signing.ps1')
+```
+
+The following fragments belong inside that adapter, after it has bound its product
+parameters. `$payload`, `$buildRoot`, `$version`, `$Architecture`, `$Format` and
+`$Publisher` are consumer-owned values. Use a fresh absolute `$buildRoot` outside
+the payload. Do not enumerate or package its diagnostics as application content.
+
+Preflight signing before an expensive build when any signing option is supplied.
+Pass the expected MSIX publisher, or an empty string for MSI. The helper requires
+exactly one explicit certificate selection, a private key, a valid time interval
+and code-signing EKU. No certificate is selected or generated for unsigned builds.
+
+```powershell
+$signingOptions = @{
+    CertificateThumbprint = $CertificateThumbprint
+    CertificatePath = $CertificatePath
+    CertificatePassword = $CertificatePassword
+    TimestampUri = $TimestampUri
+}
+$sign = $false
+if ($CertificateThumbprint -or $CertificatePath) { $sign = $true }
+if ($sign -or $CertificatePassword -or $TimestampUri) {
+    Assert-WbtSigningOptions @signingOptions
+    $expectedPublisher = if ($Format -eq 'Msix') { $Publisher } else { '' }
+    $certificate = Get-WbtSigningCertificate -CertificateThumbprint $CertificateThumbprint `
+        -CertificatePath $CertificatePath -CertificatePassword $CertificatePassword `
+        -Publisher $expectedPublisher
+    try { $null = Get-WbtSdkTool signtool.exe } finally { $certificate.Dispose() }
+}
+```
+
+After the consumer publishes and approves its payload, invoke the appropriate
+packer. Generate the MSIX manifest with final product fields in the build tree,
+outside `$payload`; reserved MSIX metadata in the payload is rejected.
+
+```powershell
+if ($Format -eq 'Msi') {
+    $package = & (Join-Path $tools 'msi/package.ps1') `
+        -Config (Join-Path $root 'deployment/msi.json') -PayloadDirectory $payload `
+        -Version $version -Architecture $Architecture `
+        -OutputDirectory (Join-Path $buildRoot 'installer')
+} else {
+    # The consumer has already generated this manifest; do not copy it into payload.
+    $package = & (Join-Path $tools 'msix/package.ps1') -PayloadDirectory $payload `
+        -Manifest (Join-Path $buildRoot 'AppxManifest.xml') `
+        -OutputDirectory (Join-Path $buildRoot 'installer')
+}
+$artifact = $package.Artifact
+if ($sign) {
+    $signed = & (Join-Path $tools 'signing/sign.ps1') -Artifact $artifact `
+        @signingOptions -RequireTrusted:$RequireTrusted
+}
+```
+
+`sign.ps1` verifies the resulting signature against the selected signer and, for
+MSIX, validates the actual embedded publisher before signing. A separate
+`verify.ps1` call is useful when accepting an existing signed artifact. Without
+`RequireTrusted`, only `Valid` and `NotTrusted` signature statuses are accepted;
+with it, SignTool must also accept the host's Authenticode trust policy. Choose
+this explicitly for the consumer's distribution scenario. A failed sign/verify
+aborts release and may leave changed bytes: rebuild rather than releasing them.
+
+Never send PFX/password arguments through `Invoke-WbtTool` or print the signing
+options. The shared signing operation bypasses that logger. For other native
+product commands, use `Invoke-WbtTool -Tool ... -Arguments ... -LogPath ...` rather
+than copying its exit-code/diagnostic handling. `Get-WbtSdkTool` discovers installed
+MakeAppx/SignTool; it does not install or download an SDK.
+
+### Compose consumer release metadata
+
+Run the shared writer after successful signing/verification, or after inspection
+for an unsigned artifact. Its `SHA256`, `Signed`, `SignatureStatus` and
+`SignerThumbprint` describe actual final bytes. `SourceCommit`, `SourceDirty` and
+`Version` are supplied by the consumer; the writer does not query Git. Metadata
+inspection does not replace the explicit expected-signer/trust gate above.
+
+If the consumer needs additional fields, first write an authoritative generic
+sidecar, read it, and add only product-owned fields to a separate final manifest.
+Do not rehash the artifact, call Authenticode again, or set `Signed` from the
+requested signing flag. Do not overwrite shared fields or the generic sidecar.
+Both files must remain outside the payload and the artifact must not change
+between signing, metadata generation and publication.
+
+This example preserves Agenda's `Format`, `Architecture` and legacy `Commit`
+fields alongside every field from the generic record. `$commit` and `$sourceDirty`
+come from the consumer's checked Git queries. The final manifest's `SchemaVersion`
+continues to describe the shared fields; any additional consumer schema/version
+policy belongs to the consumer.
+
+```powershell
+$metadata = & (Join-Path $tools 'common/write-artifact-manifest.ps1') `
+    -Artifact $artifact -OutputPath (Join-Path $buildRoot 'artifact-metadata.json') `
+    -Version $version -SourceCommit $commit -SourceDirty:$sourceDirty
+$record = Get-Content -LiteralPath $metadata.Manifest -Raw | ConvertFrom-Json -AsHashtable
+$record.Add('Format', $Format)
+$record.Add('Architecture', $Architecture)
+$record.Add('Commit', $record.SourceCommit) # Compatibility alias, not a second Git query.
+
+. (Join-Path $tools 'common/Paths.ps1')
+$manifest = Resolve-WbtPath (Join-Path $buildRoot 'release-artifacts.json')
+Assert-WbtNoLinks $manifest
+# CreateNew refuses an existing manifest, including a concurrent writer.
+$stream = [IO.File]::Open($manifest, [IO.FileMode]::CreateNew,
+    [IO.FileAccess]::Write, [IO.FileShare]::None)
+try {
+    $bytes = [Text.UTF8Encoding]::new($false).GetBytes(($record | ConvertTo-Json -Depth 10))
+    $stream.Write($bytes)
+} finally { $stream.Dispose() }
+```
+
+Keep existing consumer return fields too (for Agenda, `Artifact`, `Manifest`,
+`Version` and `Commit`). Return `$manifest` as the consumer manifest path. File
+serialization of the additive product record is consumer policy; hashing,
+signature inspection and the original metadata record remain shared mechanisms.
+
+### Explicit development certificates
+
+Run these operations only when separately requested. They are never part of
+build/package/sign or missing-certificate recovery. Consumer wrappers may pass
+their subject/path defaults and forward `WhatIf`/`Confirm` to the shared commands.
+
+```powershell
+# From the consumer root; creates a new non-exportable key and exports only a CER.
+./external/winbuildtools/signing/new-dev-certificate.ps1 `
+    -Subject 'CN=Example.Development' -PublicCertificatePath C:/build/new-development.cer
+
+# Separate elevated invocation, after reviewing the public certificate/thumbprint.
+./external/winbuildtools/signing/trust-dev-certificate.ps1 `
+    -CertificatePath C:/build/new-development.cer `
+    -ExpectedThumbprint REVIEWED_40_HEX_THUMBPRINT -WhatIf
+```
+
+Creation uses CurrentUser/My and does not trust the key. Trust imports the reviewed
+public certificate into LocalMachine/TrustedPeople, not Root. The trust command
+requires administrator rights even with `WhatIf`. Consumers own production signing
+and trust deployment/removal; they must not auto-create keys or auto-import trust.
+
+## Build compatibility and migration acceptance
+
+The packaging mechanisms can be migrated independently of .NET orchestration.
+The generic .NET helper uses `--artifacts-path`, `--runtime` when requested, locked
+restore and `--no-restore` build/publish. It rejects overrides of context-owned
+properties. A project relying on a multi-RID lock graph or custom intermediate
+layout must demonstrate compatible restore/build/publish behavior before switching.
+For Agenda, preserve the existing `RuntimeIdentifier` property selection and
+`AgendaPackagingRoot` isolation while that compatibility work is outstanding;
+delegate native invocation/logging instead of copying the shared runner. This is
+a product build exception, not a reason to retain generic signing/SDK/hash code.
+
+Before removing old helpers, test the consumer's existing public commands,
+missing-checkout errors, unsigned x64/ARM64 packaging, manifest/resource/license
+preservation, signing option rejection and additive metadata compatibility. Live
+signing/trust tests need explicitly approved disposable identities/environments;
+do not use a developer's private key or mutate trust in ordinary automated tests.
+Run `./external/winbuildtools/verify.ps1 -Integration` plus the consumer's own tests.
+The shared synthetic tests do not establish the consumer's installer lifecycle,
+ICE validation, native ARM64 execution or application correctness. Its pinned-clone
+test exercises committed HEAD, so commit before relying on that part of acceptance.
 
 ## GitHub consumer checkout
 
@@ -69,6 +275,10 @@ during checkout/submodule initialization. Do not put tokens in .gitmodules,
 remote URLs, product JSON or logs; do not persist credential configuration.
 See GitHub's [token guidance](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token).
 
+Hosted verification remains manual-only. Do not add push/tag/schedule triggers or
+dispatch Actions as a side effect of integration, packaging or publishing. Run
+local checks normally; start a hosted workflow only on an explicit user request.
+
 ## Upgrade deliberately
 
 ```powershell
@@ -84,4 +294,5 @@ must continue to build with its recorded tool commit after new tool releases.
 Older commits must remain reachable on the hosting repository.
 
 The checkout model follows [Git's submodule documentation](https://git-scm.com/docs/gitsubmodules).
-Agenda and ProcSight have not been migrated by this setup.
+This guide does not migrate a consumer checkout; each application owns its adapter,
+tests and pinned gitlink update.

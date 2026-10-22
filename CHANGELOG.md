@@ -5,8 +5,13 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-22
+
 ### Changed
 
+- Consumer integration now covers all shared packaging, signing, certificate,
+  SDK/logging and final metadata mechanisms, including additive product fields
+  ([migration guide](docs/INTEGRATION.md)).
 - Publishing and tagging use local verification; GitHub Actions runs only when
   explicitly requested ([publication guidance](docs/GITHUB.md)).
 

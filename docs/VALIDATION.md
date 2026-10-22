@@ -81,3 +81,29 @@ applied. The earlier extraction review limitation above remains a historical rec
 
 This documentation change does not establish any of the installer lifecycle,
 native ARM64, live signing/trust or hosted-CI acceptance excluded above.
+
+## Consumer integration release 0.2.0 — 2026-10-22
+
+This release expands integration guidance and the MSI-only example's help; it
+does not change shared command parameters, results, executable logic, dependencies
+or the generic artifact metadata schema.
+
+- `./verify.ps1 -Integration` passed locally on Windows x64 10.0.26300.0,
+  PowerShell 7.6.5, Windows SDK 10.0.26100.0 and .NET SDK 10.0.301. This included
+  29 configuration checks, 43 native MSI checks, MSIX roundtrips/rejections,
+  signing validation, .NET build/publish and pinned recursive consumer packaging.
+  Before the release commit, the pinned clone exercised committed `48b72d2`;
+  the other tests exercised the release working tree.
+- All eight PowerShell blocks in the integration guide parsed without errors.
+  A parser-token comparison confirmed the example adapter's executable tokens
+  were unchanged from the previous commit. `git diff --check` passed.
+- Independent review found the examples consistent with shared helper contracts,
+  including preserved generic hash/signature fields, additive Format/Architecture
+  and Commit fields, separate certificate/trust commands and explicit trust policy.
+- An ad-hoc end-to-end metadata-composition fixture command was rejected by
+  automatic approval review as "blocked by policy" before execution. The example
+  was reviewed and parsed, but that extra execution check was not completed.
+  Existing common-helper tests cover the generic writer, not consumer composition.
+- No GitHub workflow or hosted release was requested or started for this release.
+  No live signing, certificate creation/import, installed lifecycle acceptance or
+  Agenda migration is established by these winbuildtools checks.

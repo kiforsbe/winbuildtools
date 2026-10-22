@@ -61,7 +61,8 @@ metadata after signing and do not treat an earlier inspection hash as final.
 
 ## Compatibility and releases
 
-Tool version 0.1.0 is the first tagged release (`v0.1.0`), hosted at
+Tool version 0.2.0 (`v0.2.0`) retains the v0.1.0 command and metadata contracts,
+with complete consumer migration and additive release-metadata guidance. Hosted at
 [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
 Config schemaVersion remains 1.
 Breaking CLI/result/schema changes require a documented

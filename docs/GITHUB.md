@@ -1,8 +1,8 @@
 # GitHub publication and maintenance
 
 Source is published at [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools)
-with `main` as the default branch and `origin` as the local remote. Version 0.1.0
-uses the annotated tag `v0.1.0`. Private vulnerability reporting is enabled; see
+with `main` as the default branch and `origin` as the local remote. Version 0.2.0
+uses the annotated tag `v0.2.0`. Private vulnerability reporting is enabled; see
 [SECURITY.md](../SECURITY.md). No hosted GitHub release, branch rules or secrets
 have been created by this setup.
 
@@ -33,7 +33,7 @@ the checks to preserve for subsequent releases or a new hosting destination.
    event SHA with ephemeral token authentication and leaves no stored credential.
 5. After a clean local ./verify.ps1 -Integration, review CHANGELOG/VERSION and
    the public contracts, then
-   deliberately publish the existing `v0.1.0` tag when the owner requests it.
+   deliberately publish the selected annotated release tag when the owner requests it.
    The local tag does not imply a GitHub release or hosted verification.
 6. Add consumers using the published URL and an exact reviewed commit as described
    in [INTEGRATION.md](INTEGRATION.md). Confirm the referenced commit is available

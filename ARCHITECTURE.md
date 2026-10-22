@@ -43,6 +43,16 @@ are superseded. Generate final metadata after signing and verification. Metadata
 records facts about bytes and caller-supplied source fields; it is not a signed
 attestation or proof of application safety.
 
+A consumer migration delegates all applicable generic mechanisms, including
+certificate validation, explicit separate key/trust commands, SDK discovery,
+logging and final metadata, not only MSI/MSIX packing. Product adapters retain
+identity/manifest fields, publishing/resources, required-file/license checks and
+release policy. They may add product fields or compatibility aliases to a separate
+consumer manifest read from the shared writer's record, but must preserve its
+hash/signature fields without recomputing or overriding them. The
+[integration guide](docs/INTEGRATION.md) documents this composition and build-context
+exceptions; the MSI-only example is deliberately narrower than a complete migration.
+
 ## Repository boundaries
 
 | Area | Owns | Dependencies |

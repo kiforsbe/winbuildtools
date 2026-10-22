@@ -2,12 +2,17 @@
 
 <#
 .SYNOPSIS
-Example consumer adapter for a pinned external winbuildtools checkout.
+MSI-only consumer adapter demonstrating a pinned winbuildtools checkout.
 .DESCRIPTION
 Copy this script to the application repository root and maintain your product
 JSON at deployment/msi.json. Publish/approve the application's payload first.
 The script resolves the tool and JSON from its own location, independent of the
 shell directory. Never downloads tools or changes the pinned submodule commit.
+This narrow example does not implement the full consumer release pipeline.
+For a complete migration, also delegate signing/certificate validation, separate
+development certificate/trust commands, SDK/tool logging and final hash metadata.
+See docs/INTEGRATION.md in winbuildtools for ownership and metadata composition;
+do not retain local copies of those generic mechanisms after migrating them.
 .OUTPUTS
 The MSI command's result: Artifact, Version, Architecture, SHA256, InspectionReport.
 .EXAMPLE

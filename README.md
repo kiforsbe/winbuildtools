@@ -30,8 +30,14 @@ See [dependencies](docs/DEPENDENCIES.md) for platform ownership and review limit
 Use a pinned Git submodule at external/winbuildtools. Initialize it as part of
 checkout, not from a packaging script. See [integration](docs/INTEGRATION.md)
 for adding the submodule, recursive cloning, private access, deliberate updates
-and GitHub CI. A [consumer adapter](examples/consumer-package.ps1) demonstrates
-an actionable missing-checkout error and script-relative product/tool paths.
+and GitHub CI. Migrate all applicable shared mechanisms: packaging/inspection,
+signing/certificate validation, explicit separate development key/trust commands,
+SDK/tool logging and final hash/signature metadata. Keep product build/resources,
+required-file/license policy, identity/manifest data and release policy in the app.
+The guide includes composition of consumer metadata fields such as Format,
+Architecture and a legacy Commit alias without duplicating hash/signature logic.
+The [MSI-only adapter](examples/consumer-package.ps1) demonstrates checkout/path
+handling and one packer call; it is not a complete migration example.
 
 ## Package a prepared application
 
@@ -123,6 +129,6 @@ For implementation boundaries, data flow and maintenance constraints, see
 [MIT License](LICENSE). Extracted from Agenda/ProcSight with the copyright holder's
 explicit MIT relicensing authorization; retain [NOTICE.md](NOTICE.md). No Windows
 SDK, framework/runtime or application redistribution rights are supplied by this
-source license. Tool version: 0.1.0 (`v0.1.0`). Source is hosted at
+source license. Tool version: 0.2.0 (`v0.2.0`). Source is hosted at
 [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
 See the [changelog](CHANGELOG.md).
