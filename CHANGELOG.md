@@ -5,6 +5,11 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- Publishing and tagging use local verification; GitHub Actions runs only when
+  explicitly requested ([publication guidance](docs/GITHUB.md)).
+
 ### Security
 
 - Private vulnerability reporting is available on GitHub

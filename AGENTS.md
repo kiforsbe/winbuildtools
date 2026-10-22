@@ -15,6 +15,13 @@ coverage change. Keep script help and maintenance comments accurate in the same
 change: explain purpose, inputs/results, side effects, non-obvious ordering,
 identity/security constraints and resource cleanup rather than restating syntax.
 
+## GitHub Actions
+
+Keep workflows manual-only (`workflow_dispatch`). Do not dispatch a workflow as
+part of publishing, tagging, pushing or routine verification unless the user
+explicitly asks to run GitHub Actions. Run local verification instead; hosted
+verification is a separate, explicitly requested action.
+
 ### Changelog entries
 
 [CHANGELOG.md](CHANGELOG.md) follows
