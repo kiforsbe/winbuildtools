@@ -5,10 +5,9 @@ effects when subsequently installed. Review payload/configuration and output
 before release. Synthetic inspection does not establish an application's safety,
 permission suitability, dependency security, license rights or installed behavior.
 
-No private reporting address or GitHub private-reporting setting is configured
-by this local setup. Before public hosting, maintainers must configure a private
-channel and update this file. Until then, contact the maintainer through an
-already-established private channel; do not post secrets or exploit details in
+Report suspected vulnerabilities through GitHub's
+[private vulnerability reporting](https://github.com/kiforsbe/winbuildtools/security/advisories/new),
+which is enabled for this repository. Do not post secrets or exploit details in
 public issues. No response-time/support guarantee is claimed.
 
 ## Certificates and signatures

@@ -1,10 +1,15 @@
 # GitHub publication and maintenance
 
-Version 0.1.0 is prepared as the local annotated tag `v0.1.0`. No GitHub
-repository, remote, push, hosted release, branch rules, private reporting channel
-or secret has been created/configured by this setup.
+Source is published at [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools)
+with `main` as the default branch and `origin` as the local remote. Version 0.1.0
+uses the annotated tag `v0.1.0`. Private vulnerability reporting is enabled; see
+[SECURITY.md](../SECURITY.md). No hosted GitHub release, branch rules or secrets
+have been created by this setup.
 
-## First publication
+## Publication procedure
+
+Initial source publication is complete. These steps describe publication and
+the checks to preserve for subsequent releases or a new hosting destination.
 
 1. Create an empty repository named winbuildtools in the intended GitHub account
    or organization. Choose visibility deliberately; private consumers need access.
@@ -12,7 +17,7 @@ or secret has been created/configured by this setup.
 2. Choose the actual owner URL and publish the existing local main branch:
 
    ```powershell
-   git remote add origin https://github.com/OWNER/winbuildtools.git
+   git remote add origin https://github.com/kiforsbe/winbuildtools.git
    git push -u origin main
    ```
 

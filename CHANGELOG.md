@@ -5,6 +5,11 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+### Security
+
+- Private vulnerability reporting is available on GitHub
+  ([reporting guidance](SECURITY.md)).
+
 ## [0.1.0] - 2026-10-22
 
 ### Added

@@ -123,5 +123,6 @@ For implementation boundaries, data flow and maintenance constraints, see
 [MIT License](LICENSE). Extracted from Agenda/ProcSight with the copyright holder's
 explicit MIT relicensing authorization; retain [NOTICE.md](NOTICE.md). No Windows
 SDK, framework/runtime or application redistribution rights are supplied by this
-source license. Tool version: 0.1.0, tagged locally as `v0.1.0`; GitHub publication
-has not been performed. See the [changelog](CHANGELOG.md).
+source license. Tool version: 0.1.0 (`v0.1.0`). Source is hosted at
+[kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
+See the [changelog](CHANGELOG.md).
