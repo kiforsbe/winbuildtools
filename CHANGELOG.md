@@ -1,10 +1,11 @@
 # Changelog
 
 All notable changes to winbuildtools are listed here. The format is based on
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version 0.1.0 is the
-initial local baseline; no release has been published.
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-10-22
 
 ### Added
 

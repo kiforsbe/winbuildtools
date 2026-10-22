@@ -61,8 +61,9 @@ metadata after signing and do not treat an earlier inspection hash as final.
 
 ## Compatibility and releases
 
-Tool version 0.1.0 is the initial local baseline, not a published release. Config
-schemaVersion remains 1. Breaking CLI/result/schema changes require a documented
+Tool version 0.1.0 is the first locally tagged release (`v0.1.0`); GitHub
+publication has not been performed. Config schemaVersion remains 1.
+Breaking CLI/result/schema changes require a documented
 versioning decision; keep historical commits available for consumers. Start with
 0.x releases while the contract is being adopted, document changes in CHANGELOG,
 and publish tags only after verification and review. No build follows a branch
