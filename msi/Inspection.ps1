@@ -4,7 +4,7 @@
 .SYNOPSIS
 Read MSI metadata, compare embedded payloads and run isolated costing preflight.
 .DESCRIPTION
-Requires Configuration, Identity, Payload and Database helpers. Inspection never
+Requires Configuration, Identity, Payload, Database and Maintenance helpers. Inspection never
 performs an install transaction. Returned table snapshots are plain objects;
 COM/native handles are released before returning to the caller.
 #>
@@ -74,6 +74,11 @@ function New-MsiPreflightCopy([string]$Path,[string]$Destination) {
   $database=$engine.OpenDatabase($Destination,1)
   $tables=@(Get-MsiRows $database _Tables @('Name') | ForEach-Object Name)
   if('CustomAction' -in $tables) { throw 'Read-only MSI preflight does not permit custom actions.' }
+  # Never let non-installing verification start a Restart Manager shutdown path.
+  # Change only the disposable database before OpenPackage initializes the engine;
+  # production inspection verifies the untouched deliverable's RM policy separately.
+  Invoke-MsiSql $database 'DELETE FROM `Property` WHERE `Property`=''MSIRESTARTMANAGERCONTROL'''
+  Add-MsiRow $engine $database Property @('Property','Value') @('MSIRESTARTMANAGERCONTROL','Disable')
   foreach($property in @('ProductCode','UpgradeCode')) {
    $guid=[guid]::NewGuid().ToString('B').ToUpperInvariant()
    Invoke-MsiSql $database ("UPDATE ``Property`` SET ``Value``='$guid' WHERE ``Property``='$property'")
@@ -142,6 +147,7 @@ function Assert-MsiPreflight([string]$Path) {
 # cannot establish that the embedded cabinet contains the expected application.
 function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string]$Version,[string]$Architecture,[string]$InspectionFolder) {
  $expected=@(Get-MsiPayload $Configuration $Folder $Architecture);$actual=Read-MsiPackage $Path
+ Assert-MsiMaintenancePolicy $Path $actual.Properties
  if($actual.Properties.ProductVersion -cne $Version -or $actual.Properties.ProductCode -ne (Get-MsiPackageGuid $Configuration $Architecture "product/$Version") -or $actual.Properties.UpgradeCode -ne (Get-MsiPackageGuid $Configuration $Architecture 'upgrade') -or $actual.Template -cne $(if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'}) -or $actual.Properties.ALLUSERS -ne '1') { throw 'MSI identity/version/scope mismatch.' }
  if('Signature' -notin $actual.Tables -or 'CreateFolder' -notin $actual.Tables) { throw 'MSI is missing required search/folder tables.' }
  if('CustomAction' -in $actual.Tables -or 'Registry' -in $actual.Tables) { throw 'MSI inspection rejects custom-action and registry authoring tables.' }

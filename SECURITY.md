@@ -10,6 +10,19 @@ Report suspected vulnerabilities through GitHub's
 which is enabled for this repository. Do not post secrets or exploit details in
 public issues. No response-time/support guarantee is claimed.
 
+## MSI maintenance and running applications
+
+Newly authored MSIs use Windows Installer's Restart Manager to request normal
+shutdown of applications using affected files. Full UI requires explicit consent;
+basic/reduced UI follows the native prompt and silent deployment can request
+shutdown without prompting. Forced termination and automatic relaunch are not
+authored. Machine policy, app cooperation and reboot requirements still apply.
+Consumers must implement safe shutdown/state persistence, including tray apps,
+and validate the actual installed lifecycle on an authorized disposable host.
+See [maintenance policy](msi/README.md#running-applications). Non-installing
+verification disables Restart Manager in isolated preflight copies; it never
+requests shutdown of real applications.
+
 ## Certificates and signatures
 
 Build/pack commands never create keys or change trust. Signing selects exactly

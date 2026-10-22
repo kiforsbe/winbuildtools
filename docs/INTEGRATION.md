@@ -19,12 +19,12 @@ these mechanisms through the same pinned checkout.
 
 ## Add the published tools
 
-Use the published URL and a reviewed release or full commit (for example v0.2.0).
+Use the published URL and a reviewed release or full commit (for example v0.3.0).
 These commands are a deliberate integration/update operation, never a build step.
 
 ```powershell
 git submodule add https://github.com/kiforsbe/winbuildtools.git external/winbuildtools
-git -C external/winbuildtools checkout --detach v0.2.0
+git -C external/winbuildtools checkout --detach v0.3.0
 git add .gitmodules external/winbuildtools
 git commit -m "Pin Windows build tools"
 ```
@@ -56,6 +56,12 @@ XML rather than duplicating capabilities and extensions in JSON. Tool version,
 config schema version and application package version are independent values.
 Consumers retain required-file checks, privilege policy, dependency/license
 review and final package/signature acceptance.
+
+Version 0.3.0 changes newly authored MSI maintenance to request normal Restart
+Manager application shutdown, without automatic relaunch. Consumers must handle
+Windows session-ending messages, including tray mode, and validate the installed
+servicing lifecycle before shipping application installers. Older built/cached
+MSIs keep their previous policy. See [UI policy and acceptance requirements](../msi/README.md#running-applications).
 
 ## What consumers keep and delegate
 

@@ -1,8 +1,8 @@
 # GitHub publication and maintenance
 
 Source is published at [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools)
-with `main` as the default branch and `origin` as the local remote. Version 0.2.0
-uses the annotated tag `v0.2.0`. Private vulnerability reporting is enabled; see
+with `main` as the default branch and `origin` as the local remote. Version 0.3.0
+uses the annotated tag `v0.3.0`. Private vulnerability reporting is enabled; see
 [SECURITY.md](../SECURITY.md). No hosted GitHub release, branch rules or secrets
 have been created by this setup.
 

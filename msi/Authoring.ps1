@@ -4,7 +4,7 @@
 .SYNOPSIS
 Author a native MSI database with one embedded cabinet and standard actions.
 .DESCRIPTION
-Requires Configuration, Identity, Payload and Database helpers. New-MsiPackage
+Requires Configuration, Identity, Payload, Database and Maintenance helpers. New-MsiPackage
 writes the requested MSI plus a retained msi-authoring-* work directory; it does
 not inspect the completed artifact. The public package.ps1 performs that gate.
 #>
@@ -57,8 +57,12 @@ function New-MsiPackage {
   foreach($table in $schemas.Keys) { Invoke-MsiSql $database ('CREATE TABLE `{0}` ({1})' -f $table,$schemas[$table]) }
   # ProductCode changes with version. UpgradeCode stays stable within each
   # architecture; PackageCode below is fresh even when the payload is identical.
-  $properties=@{ProductName=$Configuration.product.name;ProductVersion=$Version;ProductLanguage='1033';Manufacturer=$Configuration.product.manufacturer;ProductCode=(Get-MsiPackageGuid $Configuration $Architecture "product/$Version");UpgradeCode=(Get-MsiPackageGuid $Configuration $Architecture 'upgrade');ALLUSERS='1';INSTALLLEVEL='1';ARPNOMODIFY='1';REBOOT='ReallySuppress';MSIRESTARTMANAGERCONTROL='Disable';SecureCustomProperties='OLDERVERSIONS;NEWERVERSIONS;APPWINDOWSBUILD'}
+  # Use Windows Installer's Restart Manager integration, not a process-killing
+  # custom action. Normal shutdown is requested; applications are never relaunched
+  # automatically (including uninstall). Machine policy can still disable RM.
+  $properties=@{ProductName=$Configuration.product.name;ProductVersion=$Version;ProductLanguage='1033';Manufacturer=$Configuration.product.manufacturer;ProductCode=(Get-MsiPackageGuid $Configuration $Architecture "product/$Version");UpgradeCode=(Get-MsiPackageGuid $Configuration $Architecture 'upgrade');ALLUSERS='1';INSTALLLEVEL='1';ARPNOMODIFY='1';REBOOT='ReallySuppress';MSIRESTARTMANAGERCONTROL='0';MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1';SecureCustomProperties='OLDERVERSIONS;NEWERVERSIONS;APPWINDOWSBUILD'}
   foreach($name in $properties.Keys) { Add-MsiRow $installer $database Property @('Property','Value') @($name,$properties[$name]) }
+  Add-MsiMaintenanceUi $installer $database
   # Architecture families have different components; never let them own the same files.
   $directoryName=$Configuration.installation.directoryName+' ('+$Architecture.ToLowerInvariant()+')'
   # Filename columns need 8.3|long pairs even on long-name Windows filesystems.
@@ -135,7 +139,8 @@ function New-MsiPackage {
 
   # RemoveExistingProducts is after InstallInitialize so older-version removal
   # participates in the transaction. Unpublish/remove actions also support uninstall.
-  # Do not add launch/termination hooks: keep product behavior outside the engine.
+  # Do not add launch/termination custom actions. Native Restart Manager owns
+  # file-use shutdown; the application owns saving state and actually exiting.
   $actions=@{FindRelatedProducts=25;AppSearch=50;LaunchConditions=100;ValidateProductID=700;CostInitialize=800;FileCost=900;CostFinalize=1000;MigrateFeatureStates=1200;InstallValidate=1400;InstallInitialize=1500;RemoveExistingProducts=1510;ProcessComponents=1600;UnpublishFeatures=1800;RemoveShortcuts=3200;RemoveFiles=3500;RemoveFolders=3600;CreateFolders=3700;InstallFiles=4000;CreateShortcuts=4500;RegisterUser=6000;RegisterProduct=6100;PublishFeatures=6300;PublishProduct=6400;InstallFinalize=6600}
   foreach($action in $actions.Keys) { Add-MsiRow $installer $database InstallExecuteSequence @('Action','Sequence') @($action,[int]$actions[$action]) }
   foreach($action in @('FindRelatedProducts','AppSearch','LaunchConditions','CostInitialize','FileCost','CostFinalize','MigrateFeatureStates')) { Add-MsiRow $installer $database InstallUISequence @('Action','Sequence') @($action,[int]$actions[$action]) }

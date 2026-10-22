@@ -113,7 +113,7 @@ ownership and cleanup.
 ## MSI pipeline
 
 [package.ps1](msi/package.ps1) loads `Configuration`, `Identity`, `Payload`,
-`Database`, `Authoring` and `Inspection` in that order. It validates inputs before
+`Database`, `Maintenance`, `Authoring` and `Inspection` in that order. It validates inputs before
 creating output, authors the MSI, checks its contents and only then writes
 `inspection.json` and returns the artifact/hash/result object.
 
@@ -139,6 +139,16 @@ creating output, authors the MSI, checks its contents and only then writes
    Folder ownership/cleanup is limited to owned empty directories. Upgrade removal
    runs after InstallInitialize so it participates in the install transaction.
    There are no authored custom actions or application launch/termination hooks.
+   [Maintenance.ps1](msi/Maintenance.ps1) authors standard reserved files-in-use
+   dialogs and native consent events. Restart Manager requests normal shutdown
+   of file-using applications; it does not force termination or automatically
+   relaunch them. Full UI provides explicit consent/cancel and a manual-close
+   fallback with Retry/Continue without closing/Cancel, plus standard error/result
+   dialogs. Basic UI is Windows Installer-owned; reduced UI can also use authored
+   error/FilesInUse dialogs. Silent
+   deployment may request shutdown without prompting. Consumer applications own
+   saving state and exiting in response to committed Windows shutdown, including
+   when hidden in the tray. See [maintenance policy](msi/README.md#running-applications).
 6. [Inspection.ps1](msi/Inspection.ps1) reads table snapshots, rejects forbidden
    tables, checks identities/mappings/folder ownership, extracts the embedded
    cabinet through bounded `msi.dll` interop, and compares file bytes by SHA-256.
@@ -147,6 +157,9 @@ creating output, authors the MSI, checks its contents and only then writes
 For the native host architecture only, inspection also runs an explicit allowlist
 of search/costing/validation actions against a disposable MSI copy. That copy has
 new product, upgrade, package and component identities and temporary target paths.
+Its database disables Restart Manager before opening an engine session; production
+policy/dialog wiring is separately inspected on the original artifact before
+preflight. Verification must never issue an RM shutdown request to real applications.
 Never substitute the install execute sequence for this allowlist. Foreign-architecture
 packages receive table/cabinet checks without native costing. This preflight does
 not establish install/upgrade/repair/uninstall acceptance or replace ICE validation.

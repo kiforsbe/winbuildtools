@@ -7,9 +7,9 @@
   "Files": [
     {
       "Path": "msi/Authoring.ps1",
-      "SHA256": "068E482E02A3EE2469DC38A7121BBE14D6B8EE602468A46A54223C833F6977B2",
+      "SHA256": "207B647EA0F58670038BBCDE9D5F400F3FB329D152A17781FA8158A49364E58F",
       "ExtractionSHA256": "99063A6EFFF689B918A9953BFC2A9283094BEFBA03C81FE51CFB8D65013B0593",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md."
     },
     {
       "Path": "msi/config.schema.json",
@@ -39,15 +39,15 @@
     },
     {
       "Path": "msi/Inspection.ps1",
-      "SHA256": "75A25D294FA1FA6CF4D99DE9A74FF5878F2550DC91573B291EAD8659EFD7C707",
+      "SHA256": "18DE5A8BC62EE92601DECABBE1FB72AC8078AC82D1C0FEBDA43614DF325EDE29",
       "ExtractionSHA256": "3745A15DDE16180A0A173B3AA5EC86BDBACC4AC800B6173684E27D2E89C48EB0",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md."
     },
     {
       "Path": "msi/package.ps1",
-      "SHA256": "E32A081E01F259C58264E78169E9F4BFE3150F567E7321F1CAA152A71F8724F6",
+      "SHA256": "891E07E1D29563D73495B327E79D74B3D14722864ECF073C3C43E5FAAA4B7583",
       "ExtractionSHA256": "495C9F31A7088C9AE4A3784101DA73B6EDEED187B19F56020283E71CF6F38ACB",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md."
     },
     {
       "Path": "msi/Payload.ps1",
@@ -63,9 +63,9 @@
     },
     {
       "Path": "msi/tests/test-msi.ps1",
-      "SHA256": "C64001DD339C3044862C0E96DC3137383A3EF0C3F04D64723450CFD1513F2FE1",
+      "SHA256": "21583F390028D54E88694F3753C7FF8B39ED36CF3381DAFB243A51302860C876",
       "ExtractionSHA256": "05CF8587877227A626B97D0EA74704EF76F070D3C7ED79984C841EDD44C210B5",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md."
     }
   ]
 }

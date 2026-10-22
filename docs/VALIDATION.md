@@ -107,3 +107,48 @@ or the generic artifact metadata schema.
 - No GitHub workflow or hosted release was requested or started for this release.
   No live signing, certificate creation/import, installed lifecycle acceptance or
   Agenda migration is established by these winbuildtools checks.
+
+## Restart Manager release 0.3.0 — 2026-10-22
+
+Local non-installing verification passed on Windows x64 10.0.26300.0, PowerShell
+7.6.5, Windows SDK 10.0.26100.0 and .NET SDK 10.0.301:
+
+- `./msi/tests/test-msi.ps1`: 157 checks, including x64/ARM64 maintenance properties,
+  native files-in-use/error/termination UI tables, safe default/cancel mappings,
+  legacy Retry/Ignore behavior, seven error-result buttons and termination entries.
+- Twenty-three copied-MSI mutation cases rejected unsafe shutdown/restart/reboot
+  policy, suppressed full UI, missing/malformed consent/error/result mappings,
+  process-list binding, disabled controls and unusable control rectangles. Rejected
+  inputs retained their hashes and did not produce payload extraction evidence.
+- Read-only preflight disables Restart Manager in its isolated database before
+  OpenPackage, including when the source omitted the property. The original MSI
+  retains the production policy and unchanged bytes. No shutdown or installation
+  transaction is part of verification.
+- Red/green observations covered the previously disabled RM property, missing
+  UI tables, a forced-shutdown MSI accepted without inspection enforcement, missing
+  native error support, an accepted zero-width error control, and a preflight copy
+  that failed to insert a missing disabling property. Each was observed failing
+  before the corresponding implementation/enforcement change and passing afterward.
+- `./verify.ps1 -Integration` passed, including common/MSIX/signing/.NET/repository
+  checks and standalone engine use. Its pinned recursive consumer cloned committed
+  `99d60cf6f0ef4b823f55237e664fc02684bb001d` (v0.2.0) during draft verification;
+  native working-tree and copied-standalone tests exercised the new code.
+- `git diff --check` passed. Independent review identified authored-UI standards,
+  reduced-UI documentation, termination focus and layout gaps; the final review
+  found no remaining substantive issues after their fixes. Current extraction-file
+  hashes and local modification records were updated, preserving extraction hashes.
+
+No real application was started/stopped and no product or certificate was installed,
+removed or trusted by these checks. Release 0.3.0 publication was subsequently
+authorized separately. Hosted workflows and a GitHub Release were not requested.
+There are no new package dependencies or bundled tools.
+
+Not established: rendered dialog behavior, ICE validation, real running-app shutdown,
+installed uninstall/repair/major-upgrade acceptance, machine-policy fallback or
+native ARM64 execution. The consumer application's session-ending handlers are
+owned and validated separately. Follow the explicit disposable-host acceptance
+matrix in [Running applications](../msi/README.md#running-applications) before release.
+
+The supplied Agenda log documents only the app-closed successful uninstall retry;
+it cannot identify the earlier unlogged stall's action or prove this change fixes
+its cause. Older cached MSI databases also retain their original maintenance policy.

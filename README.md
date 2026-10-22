@@ -57,6 +57,11 @@ From the winbuildtools checkout (paths can be absolute):
 MSI supports x64/ARM64, machine installation and advertised Start-menu shortcuts.
 Start with [msi/example.json](msi/example.json) and assign your own permanent
 upgradeCode. [The MSI guide](msi/README.md) documents limits and identity rules.
+MSI maintenance uses Windows Installer's Restart Manager to request normal
+application shutdown, with no automatic relaunch. Interactive UI asks for consent;
+silent deployment can request shutdown without prompting. Applications must handle
+committed Windows shutdown rather than hiding in the tray. See the
+[UI policy and required lifecycle checks](msi/README.md#running-applications).
 
 MSIX consumes a complete caller-owned manifest without rewriting identity,
 version, capabilities or extensions. Its payload must exclude AppxManifest.xml,
@@ -129,6 +134,6 @@ For implementation boundaries, data flow and maintenance constraints, see
 [MIT License](LICENSE). Extracted from Agenda/ProcSight with the copyright holder's
 explicit MIT relicensing authorization; retain [NOTICE.md](NOTICE.md). No Windows
 SDK, framework/runtime or application redistribution rights are supplied by this
-source license. Tool version: 0.2.0 (`v0.2.0`). Source is hosted at
+source license. Tool version: 0.3.0 (`v0.3.0`). Source is hosted at
 [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
 See the [changelog](CHANGELOG.md).

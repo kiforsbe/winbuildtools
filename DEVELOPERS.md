@@ -61,8 +61,18 @@ metadata after signing and do not treat an earlier inspection hash as final.
 
 ## Compatibility and releases
 
-Tool version 0.2.0 (`v0.2.0`) retains the v0.1.0 command and metadata contracts,
-with complete consumer migration and additive release-metadata guidance. Hosted at
+MSI maintenance policy and application shutdown requirements are documented in
+[Running applications](msi/README.md#running-applications). Table inspection and
+isolated costing are not installed lifecycle acceptance. Do not add application
+termination custom actions or run a shutdown/install transaction during automated
+verification. An installed older MSI keeps its cached policy until a separately
+validated servicing path replaces it.
+
+Tool version 0.3.0 (`v0.3.0`) retains the command, configuration and result-field
+contracts, and changes newly authored MSI maintenance to the Restart Manager
+policy above. Inspection now requires its maintenance policy and native UI tables.
+Applications must implement graceful Windows shutdown and validate servicing;
+older built/cached MSIs are unchanged. Hosted at
 [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
 Config schemaVersion remains 1.
 Breaking CLI/result/schema changes require a documented

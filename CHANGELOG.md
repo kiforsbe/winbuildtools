@@ -5,6 +5,20 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-22
+
+### Changed
+
+- MSI maintenance can request graceful application shutdown through Windows
+  Restart Manager, with interactive files-in-use dialogs and no automatic relaunch
+  ([UI policy and application requirements](msi/README.md#running-applications)).
+
+### Known limitations
+
+- Running-app uninstall/repair/upgrade, rendered dialogs and ICE validation still
+  require acceptance testing on an approved disposable Windows host.
+- Previously built or cached installed MSIs retain their original maintenance policy.
+
 ## [0.2.0] - 2026-10-22
 
 ### Changed
