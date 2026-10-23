@@ -203,3 +203,21 @@ transaction. As required by the approved plan it retains OpenPackage option 0;
 restricted option 1 cannot run InstallValidate. No product is installed/removed and
 no application is started/stopped. Consumers must validate the installed lifecycle
 and uninstall explicitly before changing scope; synthetic checks do not prove it.
+
+Post-commit verification of implementation `12c5e5f95b6135f47457e68608d8beeeab9a9872`:
+
+- `./verify.ps1 -Integration` exited 0 on Windows x64 10.0.26300.0,
+  PowerShell 7.6.5 and installed .NET SDK 10.0.301. All 49 configuration,
+  157 v1 native and 151 v2 native checks passed, plus common/MSIX/signing/
+  certificate/.NET/repository checks. The intentional never-restored .NET failure
+  is a negative fixture; subsequent locked restore/build/publish/execution passed.
+- The fresh recursive pinned consumer packaged and inspected its MSI using that
+  exact new committed implementation, not the earlier v0.3.0 baseline.
+- Fresh whole-change review found no substantive implementation issues. The
+  consumer-reported optional-thumbprint forwarding bug was separately reproduced
+  and fixed with absent/empty reader tests; import retains its mandatory thumbprint.
+- `git diff --check` and repository provenance/help/documentation checks passed.
+  This follow-up records results only; it changes no executable code or contract.
+  All implementation and record commits remain local pending parent coordination;
+  VERSION remains 0.3.0 with new behavior under Unreleased. No tag/release/workflow
+  dispatch or remote push was performed.
