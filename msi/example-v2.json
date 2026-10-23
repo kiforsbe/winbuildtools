@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "product": {
+    "id": "example",
+    "name": "Example",
+    "manufacturer": "Example",
+    "upgradeCode": "{B164DDA6-9BD3-460C-BB4D-3DF900619C3C}",
+    "productCode": "{10000000-0000-4000-8000-000000000001}"
+  },
+  "installation": {
+    "scope": "choice",
+    "directoryName": "Example",
+    "minimumWindowsBuild": 22000,
+    "defaultScope": "user",
+    "menuDirectoryName": "Example",
+    "restartManager": "disabled"
+  },
+  "application": {
+    "executable": "Example.exe",
+    "icon": "Assets/Example.ico"
+  },
+  "shortcuts": [
+    {
+      "name": "Example",
+      "location": "startMenu"
+    }
+  ],
+  "payload": {
+    "requiredFiles": [
+      "Example.exe",
+      "Assets/Example.ico"
+    ],
+    "allowedExtensions": [
+      ".exe",
+      ".ico"
+    ],
+    "allowedFiles": []
+  },
+  "architecture": "x64",
+  "components": {
+    "Example.exe": "{10000000-0000-4000-8000-000000000002}",
+    "Assets/Example.ico": "{10000000-0000-4000-8000-000000000003}"
+  }
+}

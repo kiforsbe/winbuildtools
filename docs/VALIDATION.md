@@ -152,3 +152,54 @@ matrix in [Running applications](../msi/README.md#running-applications) before r
 The supplied Agenda log documents only the app-closed successful uninstall retry;
 it cannot identify the earlier unlogged stall's action or prove this change fixes
 its cause. Older cached MSI databases also retain their original maintenance policy.
+
+## Consumer-owned v2 and certificate integration — 2026-10-23
+
+Working-tree checks before the candidate commit:
+
+- `./msi/tests/test-config.ps1`: 49 checks, including the observed v2-schema red
+  case before implementation, normalized maps, duplicate/colliding/zero GUIDs,
+  scope/default combinations, architecture and missing/extra map rejection.
+  Published v1 ProductCode and UpgradeCode golden values remain unchanged.
+- `./msi/tests/test-msi.ps1`: all 157 existing v1 native checks pass, including
+  standalone copied-engine use and x64/ARM64 tables.
+- `./msi/tests/test-v2.ps1`: 151 checks across fixed machine/user, both choice
+  defaults, ARM64 tables, optional-icon omission and explicit graceful policy.
+  Each fixture supplies distinct literal persistent
+  GUIDs and independent install/menu names. Native-host choice packages exercise
+  isolated user and machine preflight sessions. Versioned framework bytes are
+  copied as inert local fixtures; they are never run or redistributed.
+- Twenty-eight real copied-MSI mutations cover folder names/parents/aliases,
+  metadata/language, component GUID/condition, file version/language/attributes,
+  native hashes, upgrade ranges/attributes/action properties, launch/search/shortcut
+  fields, scope properties/maintenance condition/event ordering and summary flags.
+  A preflight sentinel confirms rejection before costing; no extraction directory
+  is created and the rejected input retains its original hash.
+- `./tests/test-signing.ps1` includes bounded public-certificate rejection cases
+  (oversize, malformed, disguised PFX, absent EKU, validity and thumbprint), source
+  replacement after validation and a mocked import boundary asserting the exact
+  original object. WhatIf never reaches that boundary. Keys/certificates exist only
+  in memory; no persistent key or trust entry is created. The missing-reader red
+  case was observed before implementation. A consumer API check then exposed
+  empty optional-thumbprint forwarding; the omitted/empty reader cases were
+  observed failing and now pass, while import still rejects an empty thumbprint.
+
+The first full working-tree `./verify.ps1` reached the repository checks after
+all executable suites passed and correctly rejected stale provenance hashes.
+Hashes were then regenerated after CRLF normalization, preserving extraction hashes.
+The pre-commit full integration run passed, including the managed fixture and a
+pinned recursive consumer of baseline 9a3bf8c. A separate regression run with the
+semantic comparator disabled failed at the first altered-directory mutation before
+its preflight sentinel; the normal comparator passes all mutation checks. Fresh
+whole-change read-only review reported no substantive findings. A post-commit full
+integration run is recorded below when completed. No hosted workflow, tag, push or release is part of these checks.
+
+Not established: rendered scope/files-in-use dialogs, ICE/ICE105, real UAC prompts,
+standard-user installation, registered-context maintenance/major upgrade, running-app
+shutdown/refusal, production signing/trust-chain acceptance or native ARM64 execution.
+Preflight uses fresh identities, temporary targets and RM disabled, runs only the
+existing explicit search/cost/InstallValidate allowlist, and never starts an install
+transaction. As required by the approved plan it retains OpenPackage option 0;
+restricted option 1 cannot run InstallValidate. No product is installed/removed and
+no application is started/stopped. Consumers must validate the installed lifecycle
+and uninstall explicitly before changing scope; synthetic checks do not prove it.

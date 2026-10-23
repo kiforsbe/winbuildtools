@@ -47,3 +47,6 @@ try {
     Check (($storeBefore -join ',') -ceq ($storeAfter -join ',')) 'Signing failure leaves key store unchanged.'
     Write-Host 'Signing validation checks passed (no key created, trusted or used).'
 } finally { Remove-TestDirectory $fixture }
+
+# Separate fixture creates only ephemeral in-memory keys and mocks the store writer.
+& "$PSScriptRoot/test-certificates.ps1"

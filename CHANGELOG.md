@@ -5,6 +5,28 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in MSI v2 accepts literal identities/folders, explicit servicing policy and
+  native Just me / All users scope choice ([v2 contract](msi/README.md#configuration-version-2)).
+- Store-free bounded public certificate validation and object-based trust import
+  helpers support consumer UAC wrappers ([integration](docs/INTEGRATION.md#public-certificate-validation-before-elevation)).
+
+### Fixed
+
+- MSI inspection rejects altered destinations, upgrade rules, file versions/hashes,
+  scope and configured metadata before native costing or payload extraction.
+
+### Security
+
+- Development trust imports the validated in-memory certificate instead of reopening
+  its path, preventing certificate substitution after validation.
+
+### Known limitations
+
+- V2 scope UI, ICE105, UAC and installed lifecycle acceptance remain manual;
+  changing scope requires explicit removal of the previous installation.
+
 ## [0.3.0] - 2026-10-22
 
 ### Changed

@@ -96,22 +96,24 @@ function Read-MsiMaintenanceUi([string]$Path) {
    Events=if('ControlEvent' -in $tables) {@(Get-MsiRows $database ControlEvent @('Dialog_','Control_','Event','Argument','Condition','Ordering'))}else{@()}
    Fonts=if('TextStyle' -in $tables) {@(Get-MsiRows $database TextStyle @('TextStyle','FaceName','Size'))}else{@()}
    ListItems=if('ListBox' -in $tables) {@(Get-MsiRows $database ListBox @('Property','Order','Value','Text'))}else{@()}
+   RadioButtons=if('RadioButton' -in $tables) {@(Get-MsiRows $database RadioButton @('Property','Order','Value','X','Y','Width','Height','Text','Help'))}else{@()}
    InstallUi=@(Get-MsiRows $database InstallUISequence @('Action','Condition','Sequence'))
    AdminUi=if('AdminUISequence' -in $tables) {@(Get-MsiRows $database AdminUISequence @('Action','Condition','Sequence'))}else{@()}
   }
  } finally { Close-MsiCom $database;Close-MsiCom $installer }
 }
 
-function Assert-MsiMaintenancePolicy([string]$Path,$Properties) {
+function Assert-MsiMaintenancePolicy([string]$Path,$Properties,$Configuration) {
  # Inspect production bytes before any native costing. Copy-only preflight uses
  # Disable to avoid interacting with running applications during verification.
  if($Properties.ContainsKey('LIMITUI')) { throw 'MSI maintenance policy must not suppress authored full UI with LIMITUI.' }
- foreach($pair in @{MSIRESTARTMANAGERCONTROL='0';MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1';REBOOT='ReallySuppress';DefaultUIFont='WbtUIFont';ErrorDialog='WbtError'}.GetEnumerator()) {
+ $rm=if($Configuration -and $Configuration.schemaVersion -eq 2 -and $Configuration.installation.restartManager -eq 'disabled') {'Disable'}else{'0'}
+ foreach($pair in @{MSIRESTARTMANAGERCONTROL=$rm;MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1';REBOOT='ReallySuppress';DefaultUIFont='WbtUIFont';ErrorDialog='WbtError'}.GetEnumerator()) {
   if($Properties[$pair.Key] -cne $pair.Value) { throw "MSI maintenance policy mismatch: $($pair.Key)." }
  }
  $ui=Read-MsiMaintenanceUi $Path
  if(@('Dialog','Control','ControlEvent','ListBox','TextStyle','AdminUISequence' | Where-Object {$_ -notin $ui.Tables}).Count) { throw 'MSI files-in-use UI tables are missing.' }
- if(@($ui.Dialogs).Count -ne 6 -or @($ui.Controls).Count -ne 23 -or @($ui.Events).Count -ne 16 -or @($ui.Fonts).Count -ne 1 -or @($ui.ListItems).Count -ne 0) { throw 'MSI files-in-use UI contains unexpected rows.' }
+ if(@($ui.Dialogs | Where-Object Dialog -CNE WbtScope).Count -ne 6 -or @($ui.Controls | Where-Object Dialog_ -CNE WbtScope).Count -ne 23 -or @($ui.Events | Where-Object Dialog_ -CNE WbtScope).Count -ne 16 -or @($ui.Fonts).Count -ne 1 -or @($ui.ListItems).Count -ne 0) { throw 'MSI files-in-use UI contains unexpected rows.' }
  if($ui.Fonts[0].TextStyle -cne 'WbtUIFont' -or $ui.Fonts[0].FaceName -cne 'Segoe UI' -or $ui.Fonts[0].Size -ne '9') { throw 'MSI files-in-use font mismatch.' }
  foreach($dialogName in @('MsiRMFilesInUse','FilesInUse')) {
   $dialogs=@($ui.Dialogs | Where-Object Dialog -CEQ $dialogName)

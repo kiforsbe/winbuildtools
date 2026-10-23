@@ -4,7 +4,7 @@
 .SYNOPSIS
 Author a native MSI database with one embedded cabinet and standard actions.
 .DESCRIPTION
-Requires Configuration, Identity, Payload, Database and Maintenance helpers. New-MsiPackage
+Requires Configuration, Identity, Payload, Database, Maintenance and Scope helpers. New-MsiPackage
 writes the requested MSI plus a retained msi-authoring-* work directory; it does
 not inspect the completed artifact. The public package.ps1 performs that gate.
 #>
@@ -55,20 +55,30 @@ function New-MsiPackage {
    InstallUISequence='`Action` CHAR(72) NOT NULL, `Condition` CHAR(255), `Sequence` SHORT PRIMARY KEY `Action`'
   }
   foreach($table in $schemas.Keys) { Invoke-MsiSql $database ('CREATE TABLE `{0}` ({1})' -f $table,$schemas[$table]) }
-  # ProductCode changes with version. UpgradeCode stays stable within each
-  # architecture; PackageCode below is fresh even when the payload is identical.
+  # V1 derives product/version and architecture upgrade identities. V2 takes
+  # supplied persistent GUIDs literally; only PackageCode is mechanism-owned.
   # Use Windows Installer's Restart Manager integration, not a process-killing
   # custom action. Normal shutdown is requested; applications are never relaunched
   # automatically (including uninstall). Machine policy can still disable RM.
   $properties=@{ProductName=$Configuration.product.name;ProductVersion=$Version;ProductLanguage='1033';Manufacturer=$Configuration.product.manufacturer;ProductCode=(Get-MsiPackageGuid $Configuration $Architecture "product/$Version");UpgradeCode=(Get-MsiPackageGuid $Configuration $Architecture 'upgrade');ALLUSERS='1';INSTALLLEVEL='1';ARPNOMODIFY='1';REBOOT='ReallySuppress';MSIRESTARTMANAGERCONTROL='0';MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1';SecureCustomProperties='OLDERVERSIONS;NEWERVERSIONS;APPWINDOWSBUILD'}
+  $properties.Remove('ALLUSERS')
+  foreach($entry in (Get-MsiScopeProperties $Configuration).GetEnumerator()) { $properties[$entry.Key]=$entry.Value }
+  if($Configuration.schemaVersion -eq 2) {
+   if($Configuration.installation.restartManager -eq 'disabled') { $properties.MSIRESTARTMANAGERCONTROL='Disable' }
+   $properties.SecureCustomProperties+=';ALLUSERS;MSIINSTALLPERUSER;WBTINSTALLSCOPE'
+  }
   foreach($name in $properties.Keys) { Add-MsiRow $installer $database Property @('Property','Value') @($name,$properties[$name]) }
   Add-MsiMaintenanceUi $installer $database
-  # Architecture families have different components; never let them own the same files.
+  Add-MsiScopeUi $installer $database $Configuration
+  # V1 adds architecture suffixes. V2 uses exact independent consumer segments;
+  # the consumer must prevent overlapping files across independent products.
   $directoryName=$Configuration.installation.directoryName+' ('+$Architecture.ToLowerInvariant()+')'
+  $menuDirectoryName=$directoryName
+  if($Configuration.schemaVersion -eq 2) { $directoryName=$Configuration.installation.directoryName; $menuDirectoryName=$Configuration.installation.menuDirectoryName }
   # Filename columns need 8.3|long pairs even on long-name Windows filesystems.
   $installShort='A'+(Get-MsiPackageId $Configuration $Architecture 'D' 'install-root').Substring(1,7)
   $menuShort='M'+(Get-MsiPackageId $Configuration $Architecture 'D' 'menu-root').Substring(1,7)
-  foreach($directory in @(@('TARGETDIR',$null,'SourceDir'),@('ProgramFiles64Folder','TARGETDIR','PFiles64'),@('INSTALLFOLDER','ProgramFiles64Folder',($installShort+'|'+$directoryName)),@('ProgramMenuFolder','TARGETDIR','PMenu'),@('APPMENUDIR','ProgramMenuFolder',($menuShort+'|'+$directoryName)))) {
+  foreach($directory in @(@('TARGETDIR',$null,'SourceDir'),@('ProgramFiles64Folder','TARGETDIR','PFiles64'),@('INSTALLFOLDER','ProgramFiles64Folder',($installShort+'|'+$directoryName)),@('ProgramMenuFolder','TARGETDIR','PMenu'),@('APPMENUDIR','ProgramMenuFolder',($menuShort+'|'+$menuDirectoryName)))) {
    Add-MsiRow $installer $database Directory @('Directory','Directory_Parent','DefaultDir') $directory
   }
   $directories=@{''='INSTALLFOLDER'}
@@ -152,6 +162,7 @@ function New-MsiPackage {
   # the native processor; 500 selects Installer 5.0, required for ARM64 support.
   $summary.Property(1)=1252; $summary.Property(2)=$Configuration.product.name+' installer'; $summary.Property(3)=$Configuration.product.name; $summary.Property(4)=$Configuration.product.manufacturer
   $summary.Property(7)=if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'};$summary.Property(9)=[guid]::NewGuid().ToString('B').ToUpperInvariant();$summary.Property(14)=500;$summary.Property(15)=2;$summary.Property(18)='Generic MSI packaging'
+  if($Configuration.schemaVersion -eq 2 -and $Configuration.installation.scope -ne 'machine') { $summary.Property(15)=10 }
   $null=$summary.Persist();$null=$database.Commit()
  # A failed database write is not a deliverable. Release COM locks before deleting
  # the partial MSI; retain its authoring directory for diagnostics.

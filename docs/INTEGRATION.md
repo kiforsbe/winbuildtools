@@ -51,7 +51,12 @@ packaging migration. The complete ownership checklist and composition examples
 below also apply. If an adapter lives in scripts/, derive the consumer root with
 `Split-Path $PSScriptRoot -Parent`; the MSI-only example is copied to the root.
 
-The generic MSI config is JSON schemaVersion 1. MSIX uses the normal app manifest
+The generic MSI config supports JSON schemaVersion 1 and opt-in schemaVersion 2.
+Use [the v2 contract](../msi/README.md#configuration-version-2) to supply resolved
+GUIDs, exact install/menu names, scope choice and servicing policy. An adapter
+that preserves an existing product must compute those compatibility inputs in
+the consumer and emit a complete component map after preparing the payload.
+Keep v1 for existing consumers until intentionally migrating. MSIX uses the normal app manifest
 XML rather than duplicating capabilities and extensions in JSON. Tool version,
 config schema version and application package version are independent values.
 Consumers retain required-file checks, privilege policy, dependency/license
@@ -302,3 +307,21 @@ Older commits must remain reachable on the hosting repository.
 The checkout model follows [Git's submodule documentation](https://git-scm.com/docs/gitsubmodules).
 This guide does not migrate a consumer checkout; each application owns its adapter,
 tests and pinned gitlink update.
+
+## Public certificate validation before elevation
+
+Dot-source signing/Certificates.ps1 from the pinned checkout. Read with
+`Read-WbtPublicSigningCertificate -Path $cer -ExpectedThumbprint $reviewedThumbprint`;
+ExpectedThumbprint is optional for initial inspection but required for trust import.
+The reader is store-free, requires one public Cert in a .cer file of at most 1 MiB,
+and checks current validity and explicit code-signing EKU. Dispose its returned
+certificate in finally. It rejects PFX even when renamed to .cer.
+
+For an explicitly requested trust change, call
+`Import-WbtPublicSigningCertificate -Certificate $certificate -ExpectedThumbprint $reviewedThumbprint`.
+It rechecks the object then adds that same object to LocalMachine/TrustedPeople,
+never reopening the source path. WhatIf validates but never reaches store mutation
+or elevation. The shared helper never launches UAC. A consumer UAC wrapper must
+keep WhatIf unelevated, carry the reviewed thumbprint across the boundary and
+re-read/revalidate the input after elevation before calling the object import.
+Builds and packaging must never invoke trust setup automatically.

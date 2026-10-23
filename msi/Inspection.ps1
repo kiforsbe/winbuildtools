@@ -4,7 +4,7 @@
 .SYNOPSIS
 Read MSI metadata, compare embedded payloads and run isolated costing preflight.
 .DESCRIPTION
-Requires Configuration, Identity, Payload, Database and Maintenance helpers. Inspection never
+Requires Configuration, Identity, Payload, Database, Maintenance, Scope and Semantics. Inspection never
 performs an install transaction. Returned table snapshots are plain objects;
 COM/native handles are released before returning to the caller.
 #>
@@ -17,7 +17,12 @@ function Read-MsiPackage([string]$Path) {
   $properties=@{}; foreach($row in Get-MsiRows $database Property @('Property','Value')) { $properties[$row.Property]=$row.Value }
   $tables=@(Get-MsiRows $database _Tables @('Name') | ForEach-Object Name)
   $summary=$database.SummaryInformation(0)
-  [pscustomobject]@{Tables=$tables;FolderComponents=@(Get-MsiRows $database CreateFolder @('Directory_','Component_'));Removals=@(Get-MsiRows $database RemoveFile @('FileKey','Component_','FileName','DirProperty','InstallMode'));FeatureComponents=@(Get-MsiRows $database FeatureComponents @('Feature_','Component_'));Properties=$properties;PackageCode=$summary.Property(9);Template=$summary.Property(7);Files=@(Get-MsiRows $database File @('File','Component_','FileName','FileSize','Version','Sequence'));Components=@(Get-MsiRows $database Component @('Component','ComponentId','Directory_','Attributes','KeyPath'));Directories=@(Get-MsiRows $database Directory @('Directory','Directory_Parent','DefaultDir'));CustomActionCount=if('CustomAction' -in $tables) {@(Get-MsiRows $database CustomAction @('Action')).Count}else{0};RegistryCount=if('Registry' -in $tables){@(Get-MsiRows $database Registry @('Registry')).Count}else{0};Shortcuts=@(Get-MsiRows $database Shortcut @('Shortcut','Directory_','Name','Component_','Target'));ShortcutTarget=@(Get-MsiRows $database Shortcut @('Target'))[0].Target;UpgradeCount=@(Get-MsiRows $database Upgrade @('UpgradeCode')).Count;LaunchConditions=(@(Get-MsiRows $database LaunchCondition @('Condition')) | ForEach-Object Condition) -join ';';Actions=@(Get-MsiRows $database InstallExecuteSequence @('Action','Sequence'));Media=@(Get-MsiRows $database Media @('DiskId','LastSequence','Cabinet'))}
+  $semanticTables=@{}
+  foreach($entry in (Get-MsiSemanticColumns).GetEnumerator()) {
+   if($entry.Key -notin $tables) { throw "MSI semantic table missing: $($entry.Key)." }
+   $semanticTables[$entry.Key]=@(Get-MsiRows $database $entry.Key $entry.Value)
+  }
+  [pscustomobject]@{SemanticTables=$semanticTables;Codepage=$summary.Property(1);Title=$summary.Property(2);Subject=$summary.Property(3);Author=$summary.Property(4);PageCount=$summary.Property(14);WordCount=$summary.Property(15);CreatingApplication=$summary.Property(18);Tables=$tables;FolderComponents=@(Get-MsiRows $database CreateFolder @('Directory_','Component_'));Removals=@(Get-MsiRows $database RemoveFile @('FileKey','Component_','FileName','DirProperty','InstallMode'));FeatureComponents=@(Get-MsiRows $database FeatureComponents @('Feature_','Component_'));Properties=$properties;PackageCode=$summary.Property(9);Template=$summary.Property(7);Files=@(Get-MsiRows $database File @('File','Component_','FileName','FileSize','Version','Sequence'));Components=@(Get-MsiRows $database Component @('Component','ComponentId','Directory_','Attributes','KeyPath'));Directories=@(Get-MsiRows $database Directory @('Directory','Directory_Parent','DefaultDir'));CustomActionCount=if('CustomAction' -in $tables) {@(Get-MsiRows $database CustomAction @('Action')).Count}else{0};RegistryCount=if('Registry' -in $tables){@(Get-MsiRows $database Registry @('Registry')).Count}else{0};Shortcuts=@(Get-MsiRows $database Shortcut @('Shortcut','Directory_','Name','Component_','Target'));ShortcutTarget=@(Get-MsiRows $database Shortcut @('Target'))[0].Target;UpgradeCount=@(Get-MsiRows $database Upgrade @('UpgradeCode')).Count;LaunchConditions=(@(Get-MsiRows $database LaunchCondition @('Condition')) | ForEach-Object Condition) -join ';';Actions=@(Get-MsiRows $database InstallExecuteSequence @('Action','Sequence'));Media=@(Get-MsiRows $database Media @('DiskId','LastSequence','Cabinet'))}
  } finally { Close-MsiCom $summary;Close-MsiCom $database;Close-MsiCom $installer }
 }
 
@@ -110,7 +115,7 @@ function New-MsiPreflightCopy([string]$Path,[string]$Destination) {
  }
 }
 # Explicit read-only preflight actions only; never initialize or execute an install transaction here.
-function Assert-MsiPreflight([string]$Path) {
+function Assert-MsiPreflight([string]$Path,[ValidateSet('user','machine')][string]$Scope='machine') {
  $ErrorActionPreference='Stop'
  # OpenPackage requires native Windows separators, unlike OpenDatabase.
  $Path=[IO.Path]::GetFullPath($Path)
@@ -125,6 +130,9 @@ function Assert-MsiPreflight([string]$Path) {
   $previousUi=$engine.UILevel;$engine.UILevel=2
   # IgnoreMachineState=1 creates a restricted engine that cannot run InstallValidate.
   $session=$engine.OpenPackage($copy,0)
+  # Apply explicit context before costing; each scope has fresh copy/session IDs.
+  $session.Property('ALLUSERS')='2'
+  $session.Property('MSIINSTALLPERUSER')=if($Scope -eq 'user') {'1'}else{''}
   # Cost only disposable paths, never installed application or Start-menu files.
   $session.Property('INSTALLFOLDER')=Join-Path $preflightRoot 'target'
   $session.Property('APPMENUDIR')=Join-Path $preflightRoot 'menu'
@@ -147,8 +155,10 @@ function Assert-MsiPreflight([string]$Path) {
 # cannot establish that the embedded cabinet contains the expected application.
 function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string]$Version,[string]$Architecture,[string]$InspectionFolder) {
  $expected=@(Get-MsiPayload $Configuration $Folder $Architecture);$actual=Read-MsiPackage $Path
- Assert-MsiMaintenancePolicy $Path $actual.Properties
- if($actual.Properties.ProductVersion -cne $Version -or $actual.Properties.ProductCode -ne (Get-MsiPackageGuid $Configuration $Architecture "product/$Version") -or $actual.Properties.UpgradeCode -ne (Get-MsiPackageGuid $Configuration $Architecture 'upgrade') -or $actual.Template -cne $(if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'}) -or $actual.Properties.ALLUSERS -ne '1') { throw 'MSI identity/version/scope mismatch.' }
+ Assert-MsiMaintenancePolicy $Path $actual.Properties $Configuration
+ Assert-MsiScopePolicy $Path $actual $Configuration
+ Assert-MsiSemantics $actual $Configuration $expected $Version $Architecture
+ if($actual.Properties.ProductVersion -cne $Version -or $actual.Properties.ProductCode -ne (Get-MsiPackageGuid $Configuration $Architecture "product/$Version") -or $actual.Properties.UpgradeCode -ne (Get-MsiPackageGuid $Configuration $Architecture 'upgrade') -or $actual.Template -cne $(if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'})) { throw 'MSI identity/version/scope mismatch.' }
  if('Signature' -notin $actual.Tables -or 'CreateFolder' -notin $actual.Tables) { throw 'MSI is missing required search/folder tables.' }
  if('CustomAction' -in $actual.Tables -or 'Registry' -in $actual.Tables) { throw 'MSI inspection rejects custom-action and registry authoring tables.' }
  if($actual.Shortcuts.Count -ne $Configuration.shortcuts.Count) { throw 'MSI shortcut count differs from configuration.' }
@@ -172,7 +182,10 @@ function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string
  }
  if($actual.FolderComponents.Count -ne $ownedDirectories.Count -or @($actual.FolderComponents | Where-Object { !$ownedDirectories.Contains($_.Directory_) -or $_.Component_ -cne $main.Component }).Count) { throw 'MSI folder ownership must cover only owned install/menu directories.' }
  if($actual.Removals.Count -ne 1 -or $actual.Removals[0].FileName -or $actual.Removals[0].DirProperty -cne 'APPMENUDIR' -or $actual.Removals[0].Component_ -cne $main.Component -or $actual.Removals[0].InstallMode -ne '2') { throw 'MSI explicit cleanup must remove only the owned empty menu folder.' }
- if(($Architecture -eq 'x64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64') -or ($Architecture -eq 'ARM64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64')) { Assert-MsiPreflight $Path }
+ if(($Architecture -eq 'x64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'X64') -or ($Architecture -eq 'ARM64' -and [Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64')) {
+  $scopes=if($Configuration.schemaVersion -eq 2 -and $Configuration.installation.scope -eq 'choice') {@('user','machine')}elseif($Configuration.schemaVersion -eq 2) {@($Configuration.installation.scope)}else{@('machine')}
+  foreach($scope in $scopes) { Assert-MsiPreflight $Path $scope }
+ }
  # Foreign-architecture packages still get table/cabinet checks. Only the native
  # host architecture above can exercise Windows Installer's costing preflight.
  $null=New-Item -ItemType Directory -Path $InspectionFolder
@@ -181,13 +194,6 @@ function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string
  Invoke-MsiTool (Join-Path $env:SystemRoot 'System32/expand.exe') @('-F:*',$cab,$extracted)
  if(@(Get-ChildItem -LiteralPath $extracted -File).Count -ne $expected.Count) { throw 'Embedded MSI cabinet file count mismatch.' }
  foreach($file in $expected) {
-  $sequence=[array]::IndexOf($expected,$file)+1
-  $row=@($actual.Files | Where-Object File -eq $file.Id)
-  $component=@($actual.Components | Where-Object Component -eq $file.Component)
-  if(@($actual.FeatureComponents | Where-Object { $_.Feature_ -ceq 'Main' -and $_.Component_ -ceq $file.Component }).Count -ne 1) { throw 'MSI payload component is not bound to the removable main feature.' }
-  $dir=[IO.Path]::GetDirectoryName($file.Relative).Replace('\','/')
-  $expectedDir=if($dir) {Get-MsiPackageId $Configuration $Architecture 'D' $dir}else{'INSTALLFOLDER'}
-  if($row.Count -ne 1 -or [int]$row[0].Sequence -ne $sequence -or ($row[0].FileName -split '\|')[-1] -cne $file.Name -or [long]$row[0].FileSize -ne $file.Length -or $component.Count -ne 1 -or $row[0].Component_ -cne $file.Component -or $component[0].ComponentId -cne (Get-MsiPackageGuid $Configuration $Architecture ('component/'+$file.Relative)) -or $component[0].KeyPath -cne $file.Id -or [int]$component[0].Attributes -ne 256 -or $component[0].Directory_ -cne $expectedDir) { throw 'MSI file/component mapping mismatch.' }
   if((Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath (Join-Path $extracted $file.Id) -Algorithm SHA256).Hash) { throw 'MSI embedded payload hash mismatch.' }
  }
 }

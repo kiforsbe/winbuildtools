@@ -34,7 +34,7 @@ param(
 $ErrorActionPreference='Stop'
 # Load the standalone engine in dependency order; importing ../common here would
 # break the supported copy-only-msi deployment and its standalone regression test.
-foreach($name in @('Configuration','Identity','Payload','Database','Maintenance','Authoring','Inspection')) { . (Join-Path $PSScriptRoot "$name.ps1") }
+foreach($name in @('Configuration','Identity','Payload','Database','Maintenance','Scope','Semantics','Authoring','Inspection')) { . (Join-Path $PSScriptRoot "$name.ps1") }
 $configuration=Read-MsiConfiguration (Resolve-MsiPath $Config)
 Assert-MsiVersion $Version
 $payload=Resolve-MsiPath $PayloadDirectory

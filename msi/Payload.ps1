@@ -9,6 +9,7 @@ FullName, Name and Length records after validating the entire file set. It does
 not build or run the application, or decide whether approved content is safe.
 #>
 function Get-MsiPayload($Configuration,[string]$Folder,[ValidateSet('x64','ARM64')][string]$Architecture) {
+    if($Configuration.schemaVersion -eq 2 -and $Configuration.architecture -ine $Architecture) { throw 'Configuration architecture mismatch.' }
     $Folder=Resolve-MsiPath $Folder
     $root=Get-Item -LiteralPath $Folder -Force
     if(!$root.PSIsContainer -or ($root.Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw 'Payload root must be a real directory.' }
@@ -40,6 +41,9 @@ function Get-MsiPayload($Configuration,[string]$Folder,[ValidateSet('x64','ARM64
     # explicit list. Validate everything before emitting any pipeline records.
     foreach($required in @($Configuration.payload.requiredFiles)+@($Configuration.application.executable)+@($Configuration.application.icon)) {
         if($required -and !$seen.Contains($required.Replace('\','/'))) { throw "Payload missing required file: $required" }
+    }
+    if($Configuration.schemaVersion -eq 2) {
+        if($Configuration.components.Count -ne $seen.Count -or @($seen | Where-Object { !$Configuration.components.ContainsKey($_) }).Count) { throw 'Component map must cover exactly the approved payload paths.' }
     }
     foreach($file in $files) {
         $relative=[IO.Path]::GetRelativePath($Folder,$file.FullName).Replace('\','/')

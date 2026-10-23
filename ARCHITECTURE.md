@@ -113,19 +113,24 @@ ownership and cleanup.
 ## MSI pipeline
 
 [package.ps1](msi/package.ps1) loads `Configuration`, `Identity`, `Payload`,
-`Database`, `Maintenance`, `Authoring` and `Inspection` in that order. It validates inputs before
+`Database`, `Maintenance`, `Scope`, `Semantics`, `Authoring` and `Inspection` in that order. It validates inputs before
 creating output, authors the MSI, checks its contents and only then writes
 `inspection.json` and returns the artifact/hash/result object.
 
 1. [Configuration.ps1](msi/Configuration.ps1) detects duplicate JSON keys before
-   conversion, validates [config.schema.json](msi/config.schema.json), then checks
+   conversion, dispatches v1/v2 schema validation, then checks
    semantic Windows path/name rules. Unknown fields and ambiguous names fail
    rather than being silently corrected.
 2. [Payload.ps1](msi/Payload.ps1) walks files without descending through links,
    sorts normalized relative paths, checks approvals and required files, and
    returns file/component records. One cabinet is bounded to 10,000 files and
    2 GiB uncompressed; individual sizes must fit MSI's signed FileSize field.
-3. [Identity.ps1](msi/Identity.ps1) and [Database.ps1](msi/Database.ps1) derive
+3. V2 additionally validates literal nonzero unique GUIDs and complete component
+   map coverage; architecture must match the command. V1 derivation stays unchanged.
+   V2 uses supplied ProductCode/UpgradeCode/component GUIDs directly and exact
+   independent install/menu segments without suffixes. Internal table IDs remain
+   generic. Consumers own collisions across products, architectures and releases.
+   [Identity.ps1](msi/Identity.ps1) and [Database.ps1](msi/Database.ps1) derive
    deterministic IDs from the permanent product namespace and normalized scope.
    Architecture scopes upgrade families; version scopes ProductCode; relative
    paths scope components. PackageCode is fresh per authoring. Do not change the
@@ -134,7 +139,7 @@ creating output, authors the MSI, checks its contents and only then writes
    names, then authors standard MSI tables through parameterized COM records.
    File.Sequence follows cabinet order. Each file has a 64-bit component and file
    key path; short/long aliases and unversioned MSI file hashes have explicit rules.
-5. Architecture-specific install/menu directories prevent independent families
+5. V1 architecture-specific install/menu directories prevent independent families
    from owning the same files. Advertised shortcuts target the `Main` feature.
    Folder ownership/cleanup is limited to owned empty directories. Upgrade removal
    runs after InstallInitialize so it participates in the install transaction.
@@ -150,13 +155,21 @@ creating output, authors the MSI, checks its contents and only then writes
    saving state and exiting in response to committed Windows shutdown, including
    when hidden in the tray. See [maintenance policy](msi/README.md#running-applications).
 6. [Inspection.ps1](msi/Inspection.ps1) reads table snapshots, rejects forbidden
-   tables, checks identities/mappings/folder ownership, extracts the embedded
+   tables, checks complete configured table/summary semantics through
+   [Semantics.ps1](msi/Semantics.ps1) before native preflight or extraction, extracts the embedded
    cabinet through bounded `msi.dll` interop, and compares file bytes by SHA-256.
    Database mappings alone do not prove cabinet contents.
+
+[Scope.ps1](msi/Scope.ps1) owns v2 native context properties and the optional
+full-UI radio chooser. Its Continue events set/clear MSIINSTALLPERUSER before
+FindRelatedProducts/costing; maintenance skips the chooser. Summary privilege flags
+permit standard-user installation for user/choice. Native MSI handles folder
+redirection. Restart Manager policy is explicit v2 consumer data.
 
 For the native host architecture only, inspection also runs an explicit allowlist
 of search/costing/validation actions against a disposable MSI copy. That copy has
 new product, upgrade, package and component identities and temporary target paths.
+Choice mode exercises user and machine with a separate disposed session/copy each.
 Its database disables Restart Manager before opening an engine session; production
 policy/dialog wiring is separately inspected on the original artifact before
 preflight. Verification must never issue an RM shutdown request to real applications.
@@ -203,7 +216,12 @@ non-exportable development key and public CER. Separately,
 [trust-dev-certificate.ps1](signing/trust-dev-certificate.ps1) requires administrator
 rights, checks the reviewed thumbprint and imports the public leaf into
 LocalMachine/TrustedPeople. Both support ShouldProcess; neither operation belongs
-in a build/pack pipeline. Trust deployment/removal remains consumer policy.
+in a build/pack pipeline. [Certificates.ps1](signing/Certificates.ps1) owns bounded
+store-free public Cert reading and validation. Its caller owns/disposes the returned
+object; import revalidates the same object, supports ShouldProcess and never opens
+a source path. Only its fixed TrustedPeople writer checks admin and mutates trust;
+WhatIf never reaches it. Consumer wrappers own any explicit UAC flow.
+Trust deployment/removal remains consumer policy.
 
 ## .NET orchestration
 
@@ -231,7 +249,8 @@ clones a disposable consumer with a pinned submodule and builds its MSI.
 The consumer clone exercises committed HEAD, not uncommitted tool edits. Other
 tests run against the working tree. Expected negative cases print failure output;
 the suite's final pass/failure status determines the result. Tests never install
-products or create/use/trust signing keys. See [validation](docs/VALIDATION.md) for
+products, create persistent keys, sign app artifacts or mutate certificate trust.
+Certificate tests use ephemeral in-memory keys and a mocked import boundary. See [validation](docs/VALIDATION.md) for
 coverage and acceptance limits.
 
 Maintain these constraints when changing scripts:

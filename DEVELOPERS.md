@@ -74,7 +74,20 @@ policy above. Inspection now requires its maintenance policy and native UI table
 Applications must implement graceful Windows shutdown and validate servicing;
 older built/cached MSIs are unchanged. Hosted at
 [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
-Config schemaVersion remains 1.
+Config schemaVersion 1 remains supported unchanged. The new opt-in v2 contract
+accepts literal ProductCode/UpgradeCode/component GUIDs, architecture, exact install/
+menu names, user/machine/choice scope and explicit Restart Manager policy; see
+[the v2 guide](msi/README.md#configuration-version-2). Scope.ps1 owns native
+context/chooser tables; Semantics.ps1 compares complete configured table and summary
+semantics before any costing or extraction. New helper files stay inside msi/.
+
+`signing/Certificates.ps1` exposes store-free
+`Read-WbtPublicSigningCertificate(Path, ExpectedThumbprint optional)` returning an
+owned certificate. Dispose it in finally. `Import-WbtPublicSigningCertificate` takes
+that object and mandatory ExpectedThumbprint, revalidates it and supports WhatIf/
+Confirm. Only its fixed LocalMachine/TrustedPeople writer requires administrator
+rights; helpers never request elevation or reopen a certificate path. Consumer
+wrappers own explicit UAC orchestration and thumbprint continuity.
 Breaking CLI/result/schema changes require a documented
 versioning decision; keep historical commits available for consumers. Start with
 0.x releases while the contract is being adopted, document changes in CHANGELOG,

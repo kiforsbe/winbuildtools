@@ -54,10 +54,12 @@ From the winbuildtools checkout (paths can be absolute):
   -Manifest C:/app/deployment/AppxManifest.xml -OutputDirectory C:/build/new-inspection
 ```
 
-MSI supports x64/ARM64, machine installation and advertised Start-menu shortcuts.
+MSI supports x64/ARM64 and advertised Start-menu shortcuts. V1 retains machine
+installation; v2 accepts literal consumer-owned identities/folders, fixed user or
+machine scope, or a native Just me / All users choice, plus explicit servicing policy.
 Start with [msi/example.json](msi/example.json) and assign your own permanent
 upgradeCode. [The MSI guide](msi/README.md) documents limits and identity rules.
-MSI maintenance uses Windows Installer's Restart Manager to request normal
+V1 and v2 graceful MSI maintenance use Windows Installer's Restart Manager to request normal
 application shutdown, with no automatic relaunch. Interactive UI asks for consent;
 silent deployment can request shutdown without prompting. Applications must handle
 committed Windows shutdown rather than hiding in the tray. See the

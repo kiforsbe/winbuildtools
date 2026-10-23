@@ -12,7 +12,7 @@ public issues. No response-time/support guarantee is claimed.
 
 ## MSI maintenance and running applications
 
-Newly authored MSIs use Windows Installer's Restart Manager to request normal
+V1 and v2 graceful MSIs use Windows Installer's Restart Manager to request normal
 shutdown of applications using affected files. Full UI requires explicit consent;
 basic/reduced UI follows the native prompt and silent deployment can request
 shutdown without prompting. Forced termination and automatic relaunch are not
@@ -22,6 +22,11 @@ and validate the actual installed lifecycle on an authorized disposable host.
 See [maintenance policy](msi/README.md#running-applications). Non-installing
 verification disables Restart Manager in isolated preflight copies; it never
 requests shutdown of real applications.
+
+V2 consumers explicitly select disabled or graceful servicing and own persistent
+GUIDs and exact directories. Complete configured MSI semantics are checked before
+costing/extraction, including upgrade rules and destinations. Scope choice uses
+native MSI tables and does not migrate existing registrations between contexts.
 
 ## Certificates and signatures
 
@@ -56,7 +61,13 @@ the separate administrative operation:
 
 Trust imports only into LocalMachine/TrustedPeople, never Root, and requires an
 administrator. Consumers own trust deployment/removal and production signing.
-The automated tests do not create, sign with or trust a certificate.
+Public certificate validation reads at most 1 MiB once, checks actual Cert content
+type, public-only status, validity, explicit code-signing EKU and the optional
+expected thumbprint. Trust import requires that thumbprint and adds the same
+validated in-memory object; it never reopens the path after validation. The helper
+never elevates and WhatIf stops before the admin/store boundary. Tests generate
+only ephemeral in-memory keys/certificates and mock the writer; they do not
+create persistent keys, sign application artifacts or mutate trust.
 
 ## Build and checkout inputs
 

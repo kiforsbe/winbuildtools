@@ -40,8 +40,31 @@ function Read-MsiConfiguration([string]$Path) {
         }
     }
     try { Assert-UniqueJsonKeys $document.RootElement } finally { $document.Dispose() }
-    if(!($json | Test-Json -SchemaFile (Join-Path $PSScriptRoot 'config.schema.json') -ErrorAction Stop)) { throw 'Invalid MSI configuration.' }
     $config=$json | ConvertFrom-Json -AsHashtable
+    if($config.schemaVersion -isnot [long] -and $config.schemaVersion -isnot [int]) { throw 'schemaVersion must be an integer.' }
+    $schema=switch($config.schemaVersion) {1 {'config.schema.json'} 2 {'config-v2.schema.json'} default {throw 'Unsupported MSI schemaVersion.'}}
+    if(!($json | Test-Json -SchemaFile (Join-Path $PSScriptRoot $schema) -ErrorAction Stop)) { throw 'Invalid MSI configuration.' }
+    if($config.schemaVersion -eq 2) {
+        Assert-MsiRelativePath $config.installation.menuDirectoryName
+        if($config.installation.menuDirectoryName -match '[/\\]') { throw 'menuDirectoryName must be one segment.' }
+        if(($config.installation.scope -eq 'choice') -ne $config.installation.ContainsKey('defaultScope')) { throw 'defaultScope is required only for choice scope.' }
+        # Persistent identities belong to the consumer. Normalize paths once and
+        # reject aliases/collisions rather than silently choosing a map entry.
+        $guids=[Collections.Generic.HashSet[guid]]::new()
+        $map=@{}
+        foreach($value in @($config.product.productCode,$config.product.upgradeCode)+@($config.components.Values)) {
+            $guid=[guid]$value
+            if($guid -eq [guid]::Empty -or !$guids.Add($guid)) { throw 'V2 identities must be nonzero, unique GUIDs.' }
+        }
+        foreach($key in $config.components.Keys) {
+            Assert-MsiRelativePath $key
+            $normalized=$key.Replace('\','/')
+            if($map.ContainsKey($normalized)) { throw 'Duplicate normalized component path.' }
+            $map[$normalized]=([guid]$config.components[$key]).ToString('B').ToUpperInvariant()
+        }
+        $config.components=$map
+        foreach($name in @('productCode','upgradeCode')) { $config.product[$name]=([guid]$config.product[$name]).ToString('B').ToUpperInvariant() }
+    }
     Assert-MsiRelativePath $config.installation.directoryName
     if($config.installation.directoryName -match '[/\\]') { throw 'Installation directoryName must be one segment.' }
     foreach($path in @($config.application.executable)+@($config.application.icon)+@($config.payload.requiredFiles)+@($config.payload.allowedFiles)) {

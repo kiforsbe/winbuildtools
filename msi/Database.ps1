@@ -9,11 +9,19 @@ values go through records. Suppress COM return values so only intended results
 reach PowerShell's success stream. Each acquired COM reference must be released.
 #>
 function Get-MsiPackageGuid($Configuration,[string]$Architecture,[string]$Scope) {
+ if($Configuration.schemaVersion -eq 2) {
+  if($Architecture -ine $Configuration.architecture) { throw 'Configuration architecture mismatch.' }
+  if($Scope -eq 'upgrade') { return $Configuration.product.upgradeCode }
+  if($Scope -match '^product/') { return $Configuration.product.productCode }
+  if($Scope -match '^component/(.+)$' -and $Configuration.components.ContainsKey($Matches[1].Replace('\','/'))) { return $Configuration.components[$Matches[1].Replace('\','/')] }
+  throw "Unsupported or missing configured identity scope: $Scope"
+ }
  # Architecture is part of every package identity scope, including upgrade family.
  return Get-MsiGuid $Configuration.product.upgradeCode "$Architecture/$Scope"
 }
 function Get-MsiPackageId($Configuration,[string]$Architecture,[string]$Prefix,[string]$Scope) {
- # Table identifiers and GUID columns must use the same architecture namespace.
+ # Internal identifiers remain deterministic generic names in both versions;
+ # v2 persistent GUID columns are separately supplied by the consumer.
  return Get-MsiId $Prefix $Configuration.product.upgradeCode "$Architecture/$Scope"
 }
 function Invoke-MsiTool([string]$Tool,[string[]]$Arguments) {

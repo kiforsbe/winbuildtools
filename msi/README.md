@@ -10,6 +10,7 @@ third-party PowerShell module or repository checkout is needed by the engine.
   -Version 1.2.3 -Architecture x64 -OutputDirectory C:/build/new-installer
 ./tests/test-config.ps1
 ./tests/test-msi.ps1
+./tests/test-v2.ps1
 ```
 
 The output directory must be new and outside the payload. The command returns
@@ -49,7 +50,74 @@ ARM64. The cabinet is limited to 10,000 files and 2 GiB uncompressed content;
 a single file must fit a signed 32-bit MSI FileSize. Cabinet directive characters
 and short-name collisions are rejected. Use a new output directory on retry.
 
-## Identity and installer behavior
+## Configuration version 2
+
+Use [example-v2.json](example-v2.json) and [config-v2.schema.json](config-v2.schema.json)
+when the consumer must preserve its existing installer identities and folders.
+V1 remains supported unchanged. V2 keeps the application/shortcut/payload fields
+above and requires these resolved inputs:
+
+| Field | Meaning |
+| --- | --- |
+| product.productCode | Literal ProductCode for this application release, in braces |
+| product.upgradeCode | Literal permanent UpgradeCode; no derivation by shared tools |
+| architecture | x64 or ARM64; must match the command argument |
+| components | Complete relative payload path to literal component GUID map |
+| installation.directoryName | Exact install directory segment; no architecture suffix |
+| installation.menuDirectoryName | Independent exact Start-menu directory segment |
+| installation.scope | user, machine or choice |
+| installation.defaultScope | user or machine; required for choice and forbidden otherwise |
+| installation.restartManager | disabled or graceful; explicit in every v2 configuration |
+
+GUIDs must be nonzero and unique across product, upgrade and all components.
+Component keys normalize slash styles and compare without case; aliases, missing
+and extra mappings are rejected before output is created. Supply one resolved
+configuration per architecture. Keep component GUIDs stable for surviving paths
+and choose a new ProductCode for a new major-upgrade release. The consumer owns
+identity derivation, cross-release compatibility and avoiding shared file ownership
+between independently installed products/architectures. Example GUIDs are synthetic;
+do not reuse them for an actual product. PackageCode remains fresh per build.
+
+### Installation scope
+
+Choice packages show native **Just me / All users** radio controls in full UI
+before FindRelatedProducts and costing. Continue sets ALLUSERS=2 and sets
+MSIINSTALLPERUSER=1 for user or clears it for machine. Cancel exits. The chooser
+is conditioned on NOT Installed AND UILevel=5: maintenance skips it, and basic,
+reduced and silent deployment preserve explicit standard command-line properties.
+The full-UI radio selection is authoritative when Continue is pressed.
+
+```powershell
+# Explicit unattended user or machine selection for a choice package:
+msiexec.exe /i app.msi /qn ALLUSERS=2 MSIINSTALLPERUSER=1 /norestart
+msiexec.exe /i app.msi /qn ALLUSERS=2 MSIINSTALLPERUSER="" /norestart
+```
+
+Native ProgramFiles64Folder and ProgramMenuFolder follow MSI context redirection;
+user installs use the current user's application/program-menu locations, while
+machine installs use native Program Files and the shared menu. User/choice packages
+have compressed/least-privilege summary WordCount=10; machine packages retain 2.
+Fixed user/machine configurations omit the chooser. Installer 5.0 is required.
+The authored context is a default, not protection against administrative overrides.
+
+Repairs, removals and upgrades retain the registered context. For an existing
+machine installation choose All users (or the explicit machine command above)
+when upgrading. Choosing Just me does not migrate/remove the machine registration.
+To change scope, uninstall the old installation explicitly first. Do not promise
+cross-context related-product discovery or automatic scope migration.
+
+Run ICE105 and normal ICE validation, rendered-dialog, UAC, standard-user,
+maintenance and real upgrade/uninstall acceptance on an authorized disposable
+Windows host before shipping. Table tests and isolated costing do not prove these.
+The v2 tests inspect x64/ARM64 tables and exercise both contexts in native-host
+preflight copies; they never install products or elevate.
+
+References: [MSIINSTALLPERUSER](https://learn.microsoft.com/en-us/windows/win32/msi/msiinstallperuser),
+[installation context](https://learn.microsoft.com/en-us/windows/win32/msi/installation-context),
+[summary flags](https://learn.microsoft.com/en-us/windows/win32/msi/word-count-summary),
+[native property events](https://learn.microsoft.com/en-us/windows/win32/msi/setproperty-controlevent).
+
+## V1 identity and common installer behavior
 
 Keep product.upgradeCode and installation.directoryName stable after a release.
 Use a different upgradeCode for every independently installed product; do not
@@ -71,8 +139,10 @@ and menu directories, so separate architecture families cannot overwrite each
 other's files. Application-level data and single-instance behavior remain the
 consumer's responsibility.
 
-Inspection verifies database identity, file/component mappings, owned folders
-and extracted cabinet bytes. Read-only native search/costing preflight runs only
+Inspection compares all configured Property, Directory, Component, File/version/hash,
+Feature, Upgrade/range/action-property, LaunchCondition, search, shortcut, media,
+folder-ownership and action-sequence rows plus summary metadata and scope/UI
+policy before native preflight or extraction. It then compares extracted cabinet bytes. Read-only native search/costing preflight runs only
 for the host's native architecture, against a copy with new product/upgrade/
 package/component identities, disposable target paths and Restart Manager disabled.
 The original package's maintenance policy/UI is checked separately. Preflight never initializes
@@ -91,7 +161,11 @@ application behavior. The consuming repository owns those checks. See
 
 ## Running applications
 
-The authored package uses `MSIRESTARTMANAGERCONTROL=0` to enable Windows Installer's
+V2 disabled packages instead use `MSIRESTARTMANAGERCONTROL=Disable`: users must
+close the application themselves; legacy files-in-use UI remains available. This
+is consumer policy, not an inferred choice based on the product name.
+
+V1 and v2 graceful packages use `MSIRESTARTMANAGERCONTROL=0` to enable Windows Installer's
 Restart Manager integration, `MSIRMSHUTDOWN=0` for normal shutdown rather than the
 force-shutdown option, and `MSIDISABLERMRESTART=1` to suppress automatic relaunch
 after uninstall, repair and upgrade. `REBOOT=ReallySuppress` continues to suppress
@@ -163,11 +237,13 @@ See [Running applications](#running-applications) before changing maintenance po
 | File | Responsibility |
 | --- | --- |
 | package.ps1 | Public command, filesystem-provider path resolution, output/result contract |
-| Configuration.ps1 / config.schema.json | Duplicate-key rejection, strict JSON fields and semantic path checks |
+| Configuration.ps1 / config*.schema.json | Duplicate-key rejection, strict JSON fields and semantic path checks |
 | Identity.ps1 | Product/architecture namespaces and stable UUIDs |
 | Payload.ps1 | Link rejection, approved paths, bounded payload enumeration |
 | Database.ps1 | Native COM lifetime, parameterized SQL records and tool execution |
 | Maintenance.ps1 | Reserved files-in-use dialogs, consent/cancel events and maintenance policy inspection |
+| Scope.ps1 | Native scope properties, chooser authoring and exact scope UI inspection |
+| Semantics.ps1 | Complete expected table/summary comparisons before preflight/extraction |
 | Authoring.ps1 | Cabinet directives, standard tables, short/long aliases and action sequencing |
 | Inspection.ps1 | Database mappings, embedded-byte comparison and isolated read-only preflight |
 | tests/ | Synthetic config/native fixtures and extraction regression |
@@ -189,7 +265,7 @@ after Set-Location. Payload approval and component identities normalize both sla
 styles. Paths in JSON remain relative to the payload, not relative to the config.
 
 When copying, include this entire directory including LICENSE/NOTICE and tests.
-Run both test scripts in the destination and exercise a second product config
+Run all three test scripts in the destination and exercise a second product config
 using relative paths from a different directory. Keep publishing, signing, license
 review and dependency acquisition in consumer adapters. Do not add imports back
 into Agenda or application-specific filenames. A future shared release should be

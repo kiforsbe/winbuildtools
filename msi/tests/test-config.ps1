@@ -65,6 +65,46 @@ try {
  [IO.File]::WriteAllText("$fixture/payload/Assets/Example.ico",'synthetic')
  $files=@(Get-MsiPayload $config "$fixture/payload" 'x64')
  Check ($files.Count -eq 2) 'Approved payload enumerated.'
+ # V2 supplies resolved identities. Exact map coverage is a payload boundary.
+ . "$engine/Database.ps1"
+ Check ((Get-MsiPackageGuid $config x64 'product/0.1.0') -ceq '{1447845A-7E48-8F3D-947A-52B6BCDDEBC7}') 'Published v1 product identity remains stable.'
+ Check ((Get-MsiPackageGuid $config x64 upgrade) -ceq '{EBF52447-F382-8D6D-919D-5BB8157F144F}') 'Published v1 upgrade identity remains stable.'
+ $v2=$json | ConvertFrom-Json -AsHashtable
+ $v2.schemaVersion=2; $v2.architecture='x64'
+ $v2.product.productCode='{10000000-0000-4000-8000-000000000001}'
+ $v2.components=@{'Example.exe'='{10000000-0000-4000-8000-000000000002}';'Assets/Example.ico'='{10000000-0000-4000-8000-000000000003}'}
+ $v2.installation.scope='choice'; $v2.installation.defaultScope='user'
+ $v2.installation.menuDirectoryName='Example menu'; $v2.installation.restartManager='disabled'
+ $v2json=$v2 | ConvertTo-Json -Depth 10
+ $v2json | Set-Content $path
+ $resolvedV2=Read-MsiConfiguration $path
+ Check (@(Get-MsiPayload $resolvedV2 "$fixture/payload" x64).Count -eq 2) 'Explicit v2 payload loads.'
+ Check ((Get-MsiPackageGuid $resolvedV2 x64 'product/9.8.7') -ceq $v2.product.productCode) 'Supplied product identity is literal.'
+ Check ((Get-MsiPackageGuid $resolvedV2 x64 upgrade) -ceq $v2.product.upgradeCode) 'Supplied upgrade identity is literal.'
+ foreach($change in @(
+  {param($x) $x.product.Remove('productCode')},
+  {param($x) $x.product.productCode=[guid]::Empty.ToString('B')},
+  {param($x) $x.components['Assets/Example.ico']=$x.components['Example.exe']},
+  {param($x) $x.components['Assets\Example.ico']=[guid]::NewGuid().ToString('B')},
+  {param($x) $x.components['../bad.exe']=[guid]::NewGuid().ToString('B')},
+  {param($x) $x.architecture='x86'},
+  {param($x) $x.installation.Remove('defaultScope')},
+  {param($x) $x.installation.scope='machine'},
+  {param($x) $x.installation.defaultScope='choice'},
+  {param($x) $x.installation.restartManager='force'},
+  {param($x) $x.installation.menuDirectoryName='nested/menu'},
+  {param($x) $x.components.extra='invalid'}
+ )) {
+  $bad=$v2json | ConvertFrom-Json -AsHashtable; & $change $bad | Out-Null
+  $bad | ConvertTo-Json -Depth 10 | Set-Content $path
+  Rejected { Read-MsiConfiguration $path }
+ }
+ Rejected { Get-MsiPayload $resolvedV2 "$fixture/payload" ARM64 }
+ $resolvedV2.components.Remove('Example.exe') | Out-Null
+ Rejected { Get-MsiPayload $resolvedV2 "$fixture/payload" x64 }
+ $resolvedV2=$v2json | ConvertFrom-Json -AsHashtable
+ $resolvedV2.components['extra.exe']=[guid]::NewGuid().ToString('B')
+ Rejected { Get-MsiPayload $resolvedV2 "$fixture/payload" x64 }
  [IO.File]::WriteAllText("$fixture/payload/Assets/settings.json",'synthetic approved data')
  $config.payload.allowedFiles=@('Assets\settings.json')
  Check (@(Get-MsiPayload $config "$fixture/payload" 'x64').Count -eq 3) 'Backslash exact approvals match normalized payload paths.'
