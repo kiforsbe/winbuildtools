@@ -8,7 +8,7 @@ Both processor tables are inspected; only the native processor runs costing.
 #>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
-foreach($name in @('Configuration','Identity','Payload','Database','Maintenance','Scope','Semantics','Authoring','Inspection')) { if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" } }
+foreach($name in @('Configuration','Identity','Payload','Database','Registration','Maintenance','Scope','Wizard','Semantics','Authoring','Inspection')) { if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" } }
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('WbtV2-'+[guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path "$fixture/payload/Assets" -Force
 $script:checks=0
@@ -48,7 +48,7 @@ try {
   Assert-MsiContents $path "$fixture/payload" $config '1.2.3' $config.architecture "$fixture/inspection-$mode"
   $ui=Read-MsiMaintenanceUi $path
   if($config.installation.scope -eq 'choice') {
-   Check (@($ui.InstallUi | Where-Object { $_.Action -ceq 'WbtScope' -and $_.Condition -ceq 'NOT Installed AND UILevel = 5' -and $_.Sequence -eq '10' }).Count -eq 1) 'Scope choice before discovery, skipped in maintenance.'
+   Check (@($ui.InstallUi | Where-Object { $_.Action -ceq 'WbtWelcome' -and $_.Condition -ceq 'NOT Installed AND UILevel = 5' -and $_.Sequence -eq '5' }).Count -eq 1) 'Scope choice before discovery, skipped in maintenance.'
    Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtScope' -and $_.Event -ceq '[MSIINSTALLPERUSER]' -and $_.Argument -ceq '{}' -and $_.Ordering -eq '3' }).Count -eq 1) 'All users explicitly clears per-user selection.'
   }
   if($mode -ne 'choice-user') { continue }
@@ -68,7 +68,7 @@ try {
     'UPDATE `RegLocator` SET `Name`=''Wrong''',
     'UPDATE `LaunchCondition` SET `Description`=''Wrong''',
     'UPDATE `Shortcut` SET `Arguments`=''wrong''',
-    'UPDATE `InstallUISequence` SET `Sequence`=799 WHERE `Action`=''WbtScope''',
+    'UPDATE `InstallUISequence` SET `Sequence`=799 WHERE `Action`=''WbtWelcome''',
     'UPDATE `ControlEvent` SET `Ordering`=9 WHERE `Event`=''[ALLUSERS]'''
     'UPDATE `Directory` SET `DefaultDir`=''WRONG'' WHERE `Directory`=''APPMENUDIR''',
     'UPDATE `Directory` SET `DefaultDir`=''WRONG|Assets'' WHERE `Directory_Parent`=''INSTALLFOLDER''',
@@ -97,7 +97,7 @@ try {
        Add-MsiRow $installer $db Upgrade @('UpgradeCode','VersionMin','Attributes','ActionProperty') @($config.product.upgradeCode,'1.2.3',258,'NEWERVERSIONS')
       }
       launch-condition { Invoke-MsiSql $db 'DELETE FROM `LaunchCondition`'; Add-MsiRow $installer $db LaunchCondition @('Condition','Description') @('1','Wrong') }
-      scope-maintenance { Invoke-MsiSql $db 'DELETE FROM `InstallUISequence` WHERE `Action`=''WbtScope'''; Add-MsiRow $installer $db InstallUISequence @('Action','Condition','Sequence') @('WbtScope','UILevel = 5',10) }
+      scope-maintenance { Invoke-MsiSql $db 'DELETE FROM `InstallUISequence` WHERE `Action`=''WbtWelcome'''; Add-MsiRow $installer $db InstallUISequence @('Action','Condition','Sequence') @('WbtWelcome','UILevel = 5',5) }
       default { Invoke-MsiSql $db $sql }
      }
      $null=$db.Commit()

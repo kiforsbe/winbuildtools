@@ -4,7 +4,8 @@
 .SYNOPSIS
 Author a native MSI database with one embedded cabinet and standard actions.
 .DESCRIPTION
-Requires Configuration, Identity, Payload, Database, Maintenance and Scope helpers. New-MsiPackage
+Requires Configuration, Identity, Payload, Database, Registration, Maintenance,
+Scope and Wizard helpers. New-MsiPackage
 writes the requested MSI plus a retained msi-authoring-* work directory; it does
 not inspect the completed artifact. The public package.ps1 performs that gate.
 #>
@@ -60,7 +61,7 @@ function New-MsiPackage {
   # Use Windows Installer's Restart Manager integration, not a process-killing
   # custom action. Normal shutdown is requested; applications are never relaunched
   # automatically (including uninstall). Machine policy can still disable RM.
-  $properties=@{ProductName=$Configuration.product.name;ProductVersion=$Version;ProductLanguage='1033';Manufacturer=$Configuration.product.manufacturer;ProductCode=(Get-MsiPackageGuid $Configuration $Architecture "product/$Version");UpgradeCode=(Get-MsiPackageGuid $Configuration $Architecture 'upgrade');ALLUSERS='1';INSTALLLEVEL='1';ARPNOMODIFY='1';REBOOT='ReallySuppress';MSIRESTARTMANAGERCONTROL='0';MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1';SecureCustomProperties='OLDERVERSIONS;NEWERVERSIONS;APPWINDOWSBUILD'}
+  $properties=@{ProductName=$Configuration.product.name;ProductVersion=$Version;ProductLanguage='1033';Manufacturer=$Configuration.product.manufacturer;ProductCode=(Get-MsiPackageGuid $Configuration $Architecture "product/$Version");UpgradeCode=(Get-MsiPackageGuid $Configuration $Architecture 'upgrade');ALLUSERS='1';INSTALLLEVEL='1';REBOOT='ReallySuppress';MsiLogging='voicewarmupx';MSIRESTARTMANAGERCONTROL='0';MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1';SecureCustomProperties='OLDERVERSIONS;NEWERVERSIONS;APPWINDOWSBUILD;WBTPREVUSERPATH;WBTPREVMACHINEPATH;INSTALLFOLDER;WBTACCEPTLICENSE'}
   $properties.Remove('ALLUSERS')
   foreach($entry in (Get-MsiScopeProperties $Configuration).GetEnumerator()) { $properties[$entry.Key]=$entry.Value }
   if($Configuration.schemaVersion -eq 2) {
@@ -69,7 +70,9 @@ function New-MsiPackage {
   }
   foreach($name in $properties.Keys) { Add-MsiRow $installer $database Property @('Property','Value') @($name,$properties[$name]) }
   Add-MsiMaintenanceUi $installer $database
-  Add-MsiScopeUi $installer $database $Configuration
+  Add-MsiScopeUi $installer $database $Configuration $Architecture
+  Add-MsiRegistration $installer $database $Configuration $Architecture $files
+  Add-MsiWizardUi $installer $database $Configuration $Architecture
   # V1 adds architecture suffixes. V2 uses exact independent consumer segments;
   # the consumer must prevent overlapping files across independent products.
   $directoryName=$Configuration.installation.directoryName+' ('+$Architecture.ToLowerInvariant()+')'
@@ -128,7 +131,7 @@ function New-MsiPackage {
   Add-MsiRow $installer $database LaunchCondition @('Condition','Description') @(('Installed OR (VersionNT64 AND APPWINDOWSBUILD >= '+$Configuration.installation.minimumWindowsBuild+')'),('Requires Windows build '+$Configuration.installation.minimumWindowsBuild+' or later ('+$Architecture+').'))
   Add-MsiRow $installer $database LaunchCondition @('Condition','Description') @('Installed OR NOT NEWERVERSIONS','The same or a newer version is already installed.')
   $main=@($files | Where-Object Relative -eq $Configuration.application.executable.Replace('\','/'))[0]
-  $icon=if($Configuration.application.icon) { Join-Path $Folder $Configuration.application.icon } else { $null }
+  $icon=if($Configuration.application.icon) { Join-Path $Folder $Configuration.application.icon } else { Join-Path $Folder $Configuration.application.executable }
   $iconName=$null
   if($icon -and (Test-Path -LiteralPath $icon)) {
    $iconName='App.exe'; Add-MsiRow $installer $database Icon @('Name','Data') @($iconName,$icon) @(1)

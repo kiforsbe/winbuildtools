@@ -70,6 +70,18 @@ MSIs keep their previous policy. See [UI policy and acceptance requirements](../
 
 ## What consumers keep and delegate
 
+The Unreleased native-wizard work requires a deliberate pin update to its reviewed
+commit after publication, then rebuilding consumer MSIs. The `v0.3.0` examples
+above do not include this work. Keep the entire `msi/` directory when copying;
+`Registration.ps1` and `Wizard.ps1` are required helpers. Existing CLI/result names
+and v1 identities are retained. Optional `ui.allowDirectoryChange`, `ui.licenseText`
+and `application.appUserModelId` are described in [native setup](../msi/README.md#native-setup-and-maintenance).
+Use the app's existing identity, not a new generic ID, and keep product/license
+policy in the consumer. New packages remember same-context custom destinations;
+older installed packages lack that record and require their known `INSTALLFOLDER`
+on upgrade. Do not claim Start right-click Uninstall from metadata inspection:
+complete [installed acceptance](MSI-ACCEPTANCE.md) with rebuilt consumer packages.
+
 | Concern | Consumer keeps | Shared mechanism to invoke |
 | --- | --- | --- |
 | Product build | Project/SDK selection, runtime/architecture/configuration, restore audit policy and compatibility workarounds | `dotnet/invoke.ps1` where its context matches the project; otherwise use `Invoke-WbtTool` for product-specific build commands |

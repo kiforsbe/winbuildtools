@@ -98,3 +98,14 @@ Keep tests independent and non-installing. Native tests exercise tables, cabinet
 and read-only costing preflight with isolated identities. See the explicit
 [validation limits](docs/VALIDATION.md). Test-first changes should cover observable
 failure behavior as well as successful package creation.
+
+Native setup now lives in `msi/Wizard.ps1`; `Registration.ps1` owns bounded
+shortcut/ARP metadata, context-specific folder memory and the exact three type-51
+setters. There are no executable custom actions. `INSTALLFOLDER` and license
+acceptance are secure UI-to-server properties. Keep selection before discovery/
+costing and native repair/remove feature events after costing. Do not add generic
+property setters or weaken semantic comparison to accommodate a new table.
+`msi/preview.ps1` requires STA and displays inactive native dialogs without an
+install session. The separately opted-in `msi/tests/acceptance.ps1 -RunLifecycle
+-DisposableHost` performs real synthetic servicing only on an isolated host;
+it is never invoked by verification or CI. See [acceptance](docs/MSI-ACCEPTANCE.md).

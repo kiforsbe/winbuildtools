@@ -69,3 +69,31 @@ host platform servicing status were not audited; no complete security claim is m
 - [Summary flags](https://learn.microsoft.com/en-us/windows/win32/msi/word-count-summary)
 - [Certificate content-type API](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509certificate2.getcertcontenttype)
 - [Object store import API](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.x509certificates.x509store.add)
+
+## Native wizard interface review — 2026-10-23
+
+This change adds no package, module, Action, runtime or vendored binary, and has no
+new package transitive dependency tree to review. It uses the installed Windows
+Installer 5.0 COM engine/property store and platform user32/System.Drawing/WinForms
+APIs for inactive native preview. No platform version is selected or upgraded.
+Windows SDK `propkey.h` 10.0.26100.0 documents
+`System.AppUserModel.UninstallCommand` (FMTID 9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3,
+PID 37) for Start uninstall. The installed SDK preview example was read as API
+reference, not copied or redistributed. Existing Windows/SDK terms still apply;
+the source MIT license does not grant rights to fixture or platform binaries.
+
+Live Microsoft guidance was checked for native shortcut properties, ARP location,
+type-51 setters, progress mappings, discovery order, native repair/remove events,
+preview lifetime and secure property transfer. EndDialog is full-UI-only; reduced
+progress therefore disables its authored Cancel control. No host servicing audit,
+platform advisory completeness or actual Start/lifecycle acceptance is claimed.
+
+- [Shortcut property table](https://learn.microsoft.com/en-us/windows/win32/msi/msishortcutproperty-table)
+- [ARP location](https://learn.microsoft.com/en-us/windows/win32/msi/arpinstalllocation)
+- [Type-51 property setter](https://learn.microsoft.com/en-us/windows/win32/msi/custom-action-type-51)
+- [Native progress](https://learn.microsoft.com/en-us/windows/win32/msi/authoring-a-progressbar-control)
+- [Repair event](https://learn.microsoft.com/en-us/windows/win32/msi/reinstall-controlevent)
+- [Remove event](https://learn.microsoft.com/en-us/windows/win32/msi/remove-controlevent)
+- [Native preview](https://learn.microsoft.com/en-us/windows/win32/msi/previewing-the-user-interface)
+- [Secure property transfer](https://learn.microsoft.com/en-us/windows/win32/msi/securecustomproperties)
+- [EndDialog UI constraint](https://learn.microsoft.com/en-us/windows/win32/msi/enddialog-controlevent)

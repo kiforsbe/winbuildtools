@@ -10,7 +10,7 @@ execution and actual installer lifecycle acceptance remain separate.
   MIT/standalone updates. [provenance.json](provenance.json) records current hashes
   and retains original extraction hashes for subsequently modified scripts.
 - MSI: 29 configuration checks and 43 native synthetic checks covering x64/ARM64
-  tables, cabinet bytes, stable identities, no custom actions, isolated read-only
+  tables, cabinet bytes, stable identities, no executable custom actions, isolated read-only
   preflight, path normalization and second-product/public-CLI use.
 - Common helpers: caller-relative paths, spaces, output/log retention, exit failures,
   missing SDK/tool rejection, no manifest overwrite and final artifact hash.
@@ -221,3 +221,61 @@ Post-commit verification of implementation `12c5e5f95b6135f47457e68608d8beeeab9a
   All implementation and record commits remain local pending parent coordination;
   VERSION remains 0.3.0 with new behavior under Unreleased. No tag/release/workflow
   dispatch or remote push was performed.
+
+## Native MSI wizard and registration — 2026-10-23
+
+The owner approved the native wizard design; its saved design/plan live outside
+Git under `C:/Users/kim_f/source/plans/winbuildtools-integration/`. No new runtime,
+package, binary dependency or hosted workflow was introduced.
+
+Working-tree verification:
+
+- Configuration suite: 54 checks. Native v1: 157 checks. V2: 151 checks.
+- Wizard/registration suite: 389 checks across x64/ARM64 tables/cabinet inspection,
+  exact three type-51 setters, native folder memory and shortcut properties,
+  native repair/remove feature events, progress mappings, modeless sequencing,
+  independent control geometry/tab cycles, optional license/destination/app ID,
+  and nine copied-MSI tamper cases rejected without extraction or input changes.
+- RED cases observed before their fixes: absent shortcut metadata, hidden Windows
+  maintenance, absent folder-memory registry row, broken tab cycles/native scope
+  preview, absent native repair feature event, and destination missing from secure
+  property transfer. Review additionally found unsupported reduced-UI Cancel and
+  full-UI destination reset; the supported reduced behavior now disables that
+  button, and destination initialization preserves explicit paths/Back edits.
+- Read-only native preview succeeded for fourteen dialogs: Welcome, scope, options,
+  license, Ready, maintenance, repair, remove, upgrade, progress, cancel confirmation,
+  success, cancellation and failure.
+  Captures were retained under ignored `artifacts/native-msi-preview/`. Visual
+  inspection found readable native layout at the host's current DPI and confirmed
+  literal braces/Unicode license rendering. Preview controls are inactive: this
+  does not prove navigation, selection, conditional visibility or servicing.
+- The acceptance helper's prepare-only mode built and inspected two fresh-identity
+  packages with `LifecycleRun=false`. Supplying `-RunLifecycle` without
+  `-DisposableHost` failed before creating output or starting any transaction.
+  No real lifecycle mode was run.
+- Fresh whole-change read-only review checked action/registry boundaries, property
+  transfer, sequencing, feature events and acceptance isolation. Its substantive
+  destination/reduced-UI findings were addressed; the older-custom-folder limit
+  is documented explicitly rather than claimed as automatically migrated.
+
+The initial full `./verify.ps1` passed executable suites and correctly failed on
+stale provenance. Current hashes are regenerated after CRLF normalization while
+preserving extraction hashes. Full integration and exact committed-consumer
+results are recorded below when completed.
+
+Not established: installed Start right-click Uninstall, live wizard navigation,
+UAC/managed elevation, actual install/repair/uninstall/upgrade/rollback, keyboard/
+screen reader/high contrast/scaling, ICE/ICE105, running-app behavior or native
+ARM64 execution. The owner confirmed no disposable VM is available. No product,
+app, persistent signing key or certificate trust was installed/removed/started/
+stopped by these checks. Existing Agenda/ProcSight installations are unchanged.
+Use [the acceptance guide](MSI-ACCEPTANCE.md) before shipping rebuilt consumer MSIs.
+
+Pre-commit `./verify.ps1 -Integration` exited 0: configuration 54, v1 157, v2 151,
+wizard/registration 389; all common/MSIX/signing/certificate/.NET/repository checks
+passed. The intentional missing-assets .NET negative case failed as expected,
+then locked restore/build/publish/execution passed. The recursive consumer used
+baseline `9949d5cd95f426611ec137522d1ee76b4889677c`; it does not include uncommitted
+edits. The exact committed candidate is checked separately after commit. Native
+14-page preview was rebuilt from the final working-tree authoring model and all
+pages rendered. `git diff --check` and 115 local document links passed.

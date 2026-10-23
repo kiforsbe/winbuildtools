@@ -109,6 +109,10 @@
         "icon": {
           "type": "string",
           "minLength": 1
+        },
+        "appUserModelId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
         }
       }
     },
@@ -183,6 +187,20 @@
       "additionalProperties": {
         "type": "string",
         "pattern": "^\\{[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\\}$"
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowDirectoryChange": {
+          "type": "boolean"
+        },
+        "licenseText": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
       }
     }
   }

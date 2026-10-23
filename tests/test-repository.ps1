@@ -30,7 +30,7 @@ foreach($file in Get-ChildItem $root -Filter '*.md' -File -Recurse | Where-Objec
         $links++
     }
 }
-foreach($path in @('msi/package.ps1','msix/package.ps1','msix/inspect.ps1','signing/sign.ps1','signing/verify.ps1','common/write-artifact-manifest.ps1','dotnet/invoke.ps1','verify.ps1')) {
+foreach($path in @('msi/package.ps1','msi/preview.ps1','msi/tests/acceptance.ps1','msix/package.ps1','msix/inspect.ps1','signing/sign.ps1','signing/verify.ps1','common/write-artifact-manifest.ps1','dotnet/invoke.ps1','verify.ps1')) {
     $help=Get-Help (Join-Path $root $path)
     Check (![string]::IsNullOrWhiteSpace($help.Synopsis)) "Public help missing: $path"
 }

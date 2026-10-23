@@ -67,18 +67,8 @@ function Add-MsiMaintenanceUi($Installer,$Database) {
   Add-MsiRow $Installer $Database Control $columns @('WbtError',$button.Key,'PushButton',16,164,80,24,3,$null,$button.Value[1],$null)
   Add-MsiRow $Installer $Database ControlEvent $eventColumns @('WbtError',$button.Key,'EndDialog',('Error'+$button.Value[0]),'1',1)
  }
- # Termination dialogs do not launch anything or change the installation result.
- # AdminUISequence gets the required result entries, not an administrative
- # installation implementation. No executable custom actions are introduced.
- foreach($result in @(@('WbtExit',-1,'Setup completed. Review the installation result and log for any required restart.'),@('WbtUserExit',-2,'Setup was canceled. Review the log before retrying.'),@('WbtFatalError',-3,'Setup could not complete. Review the error details and log before retrying.'))) {
-  Add-MsiRow $Installer $Database Dialog @('Dialog','HCentering','VCentering','Width','Height','Attributes','Title','Control_First','Control_Default','Control_Cancel') @($result[0],50,50,380,160,3,'[ProductName] - Setup','Finish','Finish','Finish')
-  Add-MsiRow $Installer $Database Control $columns @($result[0],'Message','Text',16,16,348,80,3,$null,$result[2],'Finish')
-  Add-MsiRow $Installer $Database Control $columns @($result[0],'Finish','PushButton',276,120,88,24,3,$null,'&Close','Message')
-  Add-MsiRow $Installer $Database ControlEvent $eventColumns @($result[0],'Finish','EndDialog','Return','1',1)
-  foreach($sequence in @('InstallUISequence','AdminUISequence')) {
-   Add-MsiRow $Installer $Database $sequence @('Action','Condition','Sequence') @($result[0],'UILevel = 5',[int]$result[1])
-  }
- }
+ # Wizard.ps1 owns the success/canceled/failure pages and their sequence entries.
+
 }
 
 function Read-MsiMaintenanceUi([string]$Path) {
@@ -94,8 +84,9 @@ function Read-MsiMaintenanceUi([string]$Path) {
    Dialogs=if('Dialog' -in $tables) {@(Get-MsiRows $database Dialog @('Dialog','HCentering','VCentering','Width','Height','Attributes','Title','Control_First','Control_Default','Control_Cancel'))}else{@()}
    Controls=if('Control' -in $tables) {@(Get-MsiRows $database Control @('Dialog_','Control','Type','X','Y','Width','Height','Attributes','Property','Text','Control_Next'))}else{@()}
    Events=if('ControlEvent' -in $tables) {@(Get-MsiRows $database ControlEvent @('Dialog_','Control_','Event','Argument','Condition','Ordering'))}else{@()}
-   Fonts=if('TextStyle' -in $tables) {@(Get-MsiRows $database TextStyle @('TextStyle','FaceName','Size'))}else{@()}
+   Fonts=if('TextStyle' -in $tables) {@(Get-MsiRows $database TextStyle @('TextStyle','FaceName','Size','Color','StyleBits'))}else{@()}
    ListItems=if('ListBox' -in $tables) {@(Get-MsiRows $database ListBox @('Property','Order','Value','Text'))}else{@()}
+   EventMappings=if('EventMapping' -in $tables) {@(Get-MsiRows $database EventMapping @('Dialog_','Control_','Event','Attribute'))}else{@()}
    RadioButtons=if('RadioButton' -in $tables) {@(Get-MsiRows $database RadioButton @('Property','Order','Value','X','Y','Width','Height','Text','Help'))}else{@()}
    InstallUi=@(Get-MsiRows $database InstallUISequence @('Action','Condition','Sequence'))
    AdminUi=if('AdminUISequence' -in $tables) {@(Get-MsiRows $database AdminUISequence @('Action','Condition','Sequence'))}else{@()}
@@ -112,8 +103,12 @@ function Assert-MsiMaintenancePolicy([string]$Path,$Properties,$Configuration) {
   if($Properties[$pair.Key] -cne $pair.Value) { throw "MSI maintenance policy mismatch: $($pair.Key)." }
  }
  $ui=Read-MsiMaintenanceUi $Path
+ $ui.Dialogs=@($ui.Dialogs | Where-Object Dialog -in @('MsiRMFilesInUse','FilesInUse','WbtError'))
+ $ui.Controls=@($ui.Controls | Where-Object Dialog_ -in @($ui.Dialogs.Dialog))
+ $ui.Events=@($ui.Events | Where-Object Dialog_ -in @($ui.Dialogs.Dialog))
+ $ui.Fonts=@($ui.Fonts | Where-Object TextStyle -CEQ WbtUIFont)
  if(@('Dialog','Control','ControlEvent','ListBox','TextStyle','AdminUISequence' | Where-Object {$_ -notin $ui.Tables}).Count) { throw 'MSI files-in-use UI tables are missing.' }
- if(@($ui.Dialogs | Where-Object Dialog -CNE WbtScope).Count -ne 6 -or @($ui.Controls | Where-Object Dialog_ -CNE WbtScope).Count -ne 23 -or @($ui.Events | Where-Object Dialog_ -CNE WbtScope).Count -ne 16 -or @($ui.Fonts).Count -ne 1 -or @($ui.ListItems).Count -ne 0) { throw 'MSI files-in-use UI contains unexpected rows.' }
+ if(@($ui.Dialogs | Where-Object Dialog -CNE WbtScope).Count -ne 3 -or @($ui.Controls | Where-Object Dialog_ -CNE WbtScope).Count -ne 17 -or @($ui.Events | Where-Object Dialog_ -CNE WbtScope).Count -ne 13 -or @($ui.Fonts).Count -ne 1 -or @($ui.ListItems).Count -ne 0) { throw 'MSI files-in-use UI contains unexpected rows.' }
  if($ui.Fonts[0].TextStyle -cne 'WbtUIFont' -or $ui.Fonts[0].FaceName -cne 'Segoe UI' -or $ui.Fonts[0].Size -ne '9') { throw 'MSI files-in-use font mismatch.' }
  foreach($dialogName in @('MsiRMFilesInUse','FilesInUse')) {
   $dialogs=@($ui.Dialogs | Where-Object Dialog -CEQ $dialogName)
@@ -162,21 +157,8 @@ function Assert-MsiStandardDialogs($Ui) {
   if($controls.Count -ne 1 -or $controls[0].Type -cne 'PushButton' -or $controls[0].Attributes -ne '3' -or $controls[0].Control_Next -or $controls[0].Y -ne '164' -or $controls[0].Width -ne '80' -or $controls[0].Height -ne '24' -or !$controls[0].Text) { throw 'MSI standard error button mismatch.' }
   if(@($errorEvents | Where-Object { $_.Control_ -ceq $button.Key -and $_.Event -ceq 'EndDialog' -and $_.Argument -ceq $button.Value -and $_.Condition -ceq '1' -and $_.Ordering -eq '1' }).Count -ne 1) { throw 'MSI standard error result mapping mismatch.' }
  }
- foreach($result in @{WbtExit=-1;WbtUserExit=-2;WbtFatalError=-3}.GetEnumerator()) {
-  $dialogs=@($Ui.Dialogs | Where-Object Dialog -CEQ $result.Key)
-  if($dialogs.Count -ne 1 -or $dialogs[0].Attributes -ne '3' -or $dialogs[0].Control_First -cne 'Finish' -or $dialogs[0].Control_Default -cne 'Finish' -or $dialogs[0].Control_Cancel -cne 'Finish') { throw 'MSI standard termination dialog mismatch.' }
-  $controls=@($Ui.Controls | Where-Object Dialog_ -CEQ $result.Key)
-  Assert-MsiStandardDialogLayout $dialogs[0] $controls
-  $message=@($controls | Where-Object Control -CEQ 'Message')
-  $finish=@($controls | Where-Object Control -CEQ 'Finish')
-  if($controls.Count -ne 2 -or $message.Count -ne 1 -or $finish.Count -ne 1 -or $message[0].Type -cne 'Text' -or $message[0].Attributes -ne '3' -or $message[0].Control_Next -cne 'Finish' -or !$message[0].Text -or $finish[0].Type -cne 'PushButton' -or $finish[0].Attributes -ne '3' -or $finish[0].Control_Next -cne 'Message' -or !$finish[0].Text) { throw 'MSI standard termination controls mismatch.' }
-  $events=@($Ui.Events | Where-Object Dialog_ -CEQ $result.Key)
-  if($events.Count -ne 1 -or $events[0].Control_ -cne 'Finish' -or $events[0].Event -cne 'EndDialog' -or $events[0].Argument -cne 'Return' -or $events[0].Condition -cne '1' -or $events[0].Ordering -ne '1') { throw 'MSI standard termination event mismatch.' }
-  foreach($sequence in @('InstallUi','AdminUi')) {
-   if(@($Ui.$sequence | Where-Object { $_.Action -ceq $result.Key -and [int]$_.Sequence -eq $result.Value -and $_.Condition -ceq 'UILevel = 5' }).Count -ne 1) { throw 'MSI standard termination sequence mismatch.' }
-  }
- }
- if(@($Ui.InstallUi | Where-Object {[int]$_.Sequence -lt 0}).Count -ne 3 -or @($Ui.AdminUi).Count -ne 3) { throw 'MSI standard termination sequence contains unexpected rows.' }
+ # Result dialogs and their geometry/navigation are compared by Wizard.ps1.
+
 }
 
 function Assert-MsiStandardDialogLayout($Dialog,$Controls) {

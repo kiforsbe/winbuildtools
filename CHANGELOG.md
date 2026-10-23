@@ -11,6 +11,15 @@ All notable changes to winbuildtools are listed here. The format is based on
   native Just me / All users scope choice ([v2 contract](msi/README.md#configuration-version-2)).
 - Store-free bounded public certificate validation and object-based trust import
   helpers support consumer UAC wrappers ([integration](docs/INTEGRATION.md#public-certificate-validation-before-elevation)).
+- Native MSI setup/repair/remove wizard, engine progress and result/log pages,
+  with optional destination editing and license text ([MSI guide](msi/README.md#native-setup-and-maintenance)).
+- Non-installing native dialog preview and a separately opted-in disposable-host
+  lifecycle kit ([acceptance guide](docs/MSI-ACCEPTANCE.md)).
+
+### Changed
+
+- New MSIs register Start-shortcut uninstall metadata, ARP location/icon and
+  same-context custom-folder memory for subsequent upgrades ([MSI guide](msi/README.md#native-setup-and-maintenance)).
 
 ### Fixed
 
@@ -26,6 +35,10 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 - V2 scope UI, ICE105, UAC and installed lifecycle acceptance remain manual;
   changing scope requires explicit removal of the previous installation.
+- Start right-click Uninstall and installed wizard/servicing acceptance remain
+  pending; older custom-folder packages need an explicit destination on upgrade.
+- Reduced MSI UI shows progress with authored Cancel disabled; use full or basic
+  UI for interactive cancellation ([UI behavior](msi/README.md#native-setup-and-maintenance)).
 
 ## [0.3.0] - 2026-10-22
 

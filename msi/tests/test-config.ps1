@@ -102,6 +102,25 @@ try {
  Rejected { Get-MsiPayload $resolvedV2 "$fixture/payload" ARM64 }
  $resolvedV2.components.Remove('Example.exe') | Out-Null
  Rejected { Get-MsiPayload $resolvedV2 "$fixture/payload" x64 }
+ # Presentation inputs stay optional/strict; identity is consumer-owned and
+ # license input is plain text rather than executable RTF content.
+ $presentation=$v2json | ConvertFrom-Json -AsHashtable
+ $presentation.ui=@{allowDirectoryChange=$true;licenseText='Example terms: {literal} \ Unicode å'}
+ $presentation.application.appUserModelId='Example.App'
+ $presentation | ConvertTo-Json -Depth 10 | Set-Content $path
+ $validatedPresentation=Read-MsiConfiguration $path
+ Check ($validatedPresentation.ui.allowDirectoryChange -eq $true -and $validatedPresentation.application.appUserModelId -ceq 'Example.App') 'Optional presentation and application identity load.'
+ foreach($change in @(
+  {param($x) $x.ui.allowDirectoryChange='yes'},
+  {param($x) $x.ui.licenseText=''},
+  {param($x) $x.ui.extra='unknown'},
+  {param($x) $x.application.appUserModelId='invalid id with spaces'}
+ )) {
+  $bad=$presentation | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
+  & $change $bad
+  $bad | ConvertTo-Json -Depth 10 | Set-Content $path
+  Rejected { Read-MsiConfiguration $path }
+ }
  $resolvedV2=$v2json | ConvertFrom-Json -AsHashtable
  $resolvedV2.components['extra.exe']=[guid]::NewGuid().ToString('B')
  Rejected { Get-MsiPayload $resolvedV2 "$fixture/payload" x64 }

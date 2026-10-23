@@ -113,7 +113,8 @@ ownership and cleanup.
 ## MSI pipeline
 
 [package.ps1](msi/package.ps1) loads `Configuration`, `Identity`, `Payload`,
-`Database`, `Maintenance`, `Scope`, `Semantics`, `Authoring` and `Inspection` in that order. It validates inputs before
+`Database`, `Registration`, `Maintenance`, `Scope`, `Wizard`, `Semantics`,
+`Authoring` and `Inspection` in that order. It validates inputs before
 creating output, authors the MSI, checks its contents and only then writes
 `inspection.json` and returns the artifact/hash/result object.
 
@@ -143,7 +144,7 @@ creating output, authors the MSI, checks its contents and only then writes
    from owning the same files. Advertised shortcuts target the `Main` feature.
    Folder ownership/cleanup is limited to owned empty directories. Upgrade removal
    runs after InstallInitialize so it participates in the install transaction.
-   There are no authored custom actions or application launch/termination hooks.
+   There are no executable/script custom actions or application launch/termination hooks.
    [Maintenance.ps1](msi/Maintenance.ps1) authors standard reserved files-in-use
    dialogs and native consent events. Restart Manager requests normal shutdown
    of file-using applications; it does not force termination or automatically
@@ -166,9 +167,34 @@ FindRelatedProducts/costing; maintenance skips the chooser. Summary privilege fl
 permit standard-user installation for user/choice. Native MSI handles folder
 redirection. Restart Manager policy is explicit v2 consumer data.
 
+[Wizard.ps1](msi/Wizard.ps1) owns the bounded declarative setup, maintenance,
+progress and result model. Welcome/options/optional scope/license/Ready form a
+single full-UI chain before FindRelatedProducts/AppSearch/costing. Ready transfers
+the destination to `INSTALLFOLDER`; Back preserves edits unless scope changes.
+Maintenance/upgrade confirmations run after costing and use native feature-state
+events for repair/removal. Progress is modeless and subscribes to actual engine
+events. Reduced UI displays progress with Cancel disabled because the authored
+cancel events require full UI. Full UI supplies cancellation confirmation and
+three distinct termination pages with log/restart hints. Native MSI owns rollback;
+static table inspection does not prove live navigation or recovery.
+
+[Registration.ps1](msi/Registration.ps1) owns native shortcut uninstall properties,
+optional consumer app identity, ARP location and context-specific folder memory.
+Exactly three type-51 setters are allowed: restore user/machine `INSTALLFOLDER`
+before costing and set `ARPINSTALLLOCATION` after costing. A single Registry row,
+owned by the executable component, remembers the folder under an UpgradeCode key;
+AppSearch/RegLocator read the corresponding HKCU/HKLM value. Pre-change packages
+have no memory record, so their custom folder must be supplied explicitly. Scope
+migration is never inferred. `INSTALLFOLDER` and `WBTACCEPTLICENSE` are secure
+client/server properties. Full semantic checks cover every allowed action,
+registry/search/shortcut row and UI table before engine entry. Consumer plain-text
+license data is escaped to RTF, with no executable objects or consumer RTF code.
+
 For the native host architecture only, inspection also runs an explicit allowlist
 of search/costing/validation actions against a disposable MSI copy. That copy has
-new product, upgrade, package and component identities and temporary target paths.
+new product, upgrade, package and component identities, randomized folder-memory
+registry/search keys and temporary target paths. The exact type-51 allowlist is
+checked before opening the copy; no setter or registry-writing action is executed.
 Choice mode exercises user and machine with a separate disposed session/copy each.
 Its database disables Restart Manager before opening an engine session; production
 policy/dialog wiring is separately inspected on the original artifact before
@@ -252,6 +278,16 @@ the suite's final pass/failure status determines the result. Tests never install
 products, create persistent keys, sign app artifacts or mutate certificate trust.
 Certificate tests use ephemeral in-memory keys and a mocked import boundary. See [validation](docs/VALIDATION.md) for
 coverage and acceptance limits.
+
+The additional wizard suite exercises x64/ARM64 authoring, native table and cabinet
+inspection, independent geometry/tab cycles, optional license/path/app identity,
+and copied action/UI/registry tampering. [preview.ps1](msi/preview.ps1) uses read-only
+native inactive preview in STA, clearing the dialog before COM cleanup; it never
+opens an install session. [acceptance.ps1](msi/tests/acceptance.ps1) prepares two
+fresh-identity packages by default; only explicit `-RunLifecycle -DisposableHost`
+invokes synthetic installed servicing. It is excluded from `verify.ps1`. The
+[acceptance guide](docs/MSI-ACCEPTANCE.md) separates native rendering evidence from
+pending installed Start/UAC/lifecycle/accessibility/ICE checks.
 
 Maintain these constraints when changing scripts:
 

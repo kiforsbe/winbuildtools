@@ -11,6 +11,7 @@ third-party PowerShell module or repository checkout is needed by the engine.
 ./tests/test-config.ps1
 ./tests/test-msi.ps1
 ./tests/test-v2.ps1
+./tests/test-wizard.ps1
 ```
 
 The output directory must be new and outside the payload. The command returns
@@ -21,7 +22,8 @@ caller must recompute hashes after signing.
 ## Configuration version 1
 
 See [example.json](example.json) and [config.schema.json](config.schema.json).
-All top-level fields are required. Unknown/duplicate properties are rejected.
+The example's top-level fields are required; `ui` is optional in both schemas.
+Unknown/duplicate properties are rejected.
 
 | Field | Meaning |
 | --- | --- |
@@ -34,6 +36,7 @@ All top-level fields are required. Unknown/duplicate properties are rejected.
 | installation.minimumWindowsBuild | Numeric Windows build, at least 22000 |
 | application.executable | Payload-relative .exe, including any subdirectory |
 | application.icon | Optional payload-relative icon |
+| application.appUserModelId | Optional existing consumer-owned app identity; 1–128 letters, digits, dots, underscores or hyphens, starting with a letter/digit |
 | shortcuts | One to ten unique names with location startMenu |
 | payload.requiredFiles | Files that must exist in addition to executable/icon |
 | payload.allowedExtensions | Approved extensions including the leading dot |
@@ -132,7 +135,7 @@ standard Windows Installer actions. Restart Manager requests normal shutdown of
 applications using affected files; see [Running applications](#running-applications).
 Older MSI versions are removed transactionally, same/newer versions are detected,
 and installed products retain MSI maintenance. There is no application launch,
-force-termination custom action, certificate trust import, custom-action code or user-data
+force-termination custom action, certificate trust import, executable custom-action code or user-data
 deletion. Uninstall owns only application files and empty app/menu directories.
 The engine appends the architecture to installation.directoryName for the app
 and menu directories, so separate architecture families cannot overwrite each
@@ -158,6 +161,86 @@ reputation can still warn or block it.
 The engine does not verify dependency advisories, license compatibility or
 application behavior. The consuming repository owns those checks. See
 [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE) for provenance and source terms.
+
+## Native setup and maintenance
+
+Newly authored MSIs use a native Windows Installer wizard with consistent Segoe UI
+typography, headers, publisher/footer and Back/Next/Cancel controls:
+
+```mermaid
+flowchart LR
+    Welcome --> Scope[Scope if choice]
+    Scope --> Options[Destination]
+    Options --> License[License if supplied]
+    License --> Ready
+    Ready --> Cost[Native discovery and costing]
+    Cost --> Upgrade[Upgrade confirmation if needed]
+    Upgrade --> Progress[Real engine progress]
+    Progress --> Result[Completed / canceled / failed]
+```
+
+Absent optional pages are skipped. Choices and Back navigation finish before
+related-product discovery/costing. A same-product launch offers Repair/Remove;
+`msiexec /x {ProductCode}` opens removal confirmation directly. Maintenance never
+offers a scope change. Repair/removal use native feature-state events. Windows
+Installer owns progress ticks, rollback and files-in-use handling. Full UI asks
+before cancellation. Reduced `/qr` shows progress with Cancel disabled because
+MSI's authored cancellation events require full UI; use `/qb` for the engine's
+built-in interactive progress/cancellation or `/qf` for the wizard. `/qn` has no UI.
+Installed behavior still requires the [acceptance checks](../docs/MSI-ACCEPTANCE.md).
+
+Both schemas accept these optional presentation fields:
+
+```json
+"ui": {
+  "allowDirectoryChange": true,
+  "licenseText": "Your application's plain-text license agreement."
+}
+```
+
+Destination editing defaults to false. A command-line `INSTALLFOLDER` is honored
+in full UI; Back preserves edits until scope is actually switched. The resolved
+`INSTALLFOLDER` and `WBTACCEPTLICENSE` are secured for UI-to-server transfer under
+elevated managed installation. License text is plain text (1–4096 characters),
+escaped into Unicode RTF; omit it if no agreement is required. Supplied licenses
+require explicit checkbox acceptance in full UI or `WBTACCEPTLICENSE=1` for
+unattended/basic/reduced installation. Repair/removal skip this new-install gate.
+
+Windows application registration includes `ARPINSTALLLOCATION` and an icon (the
+configured icon, otherwise the executable). Each Start shortcut gets native
+`System.AppUserModel.UninstallCommand` metadata targeting visible `msiexec /x`
+for that ProductCode. An optional `application.appUserModelId` is copied exactly;
+use the application's existing identity. No extra Uninstall shortcut is created.
+Actual Windows 11 Start right-click **Uninstall** remains an installed acceptance
+check; shell caching/policy can affect its presentation.
+
+New packages remember the resolved destination in the native context's
+`Software\winbuildtools\Installations\{UpgradeCode}` registry key, value
+`InstallLocation`, owned by the executable component. AppSearch restores it before
+costing for same-context maintenance/upgrades. Three exact declarative type-51
+setters support this and ARP location; no executable/script custom actions are
+allowed. Inspection compares their exact names, types, properties and values,
+alongside the single registry row and shortcut properties. `CustomActionCount`
+therefore reports 3 and `RegistryCount` reports 1.
+
+**Older-package boundary:** MSIs authored before this change have no folder-memory
+record. When upgrading an older custom-folder installation, explicitly supply its
+known `INSTALLFOLDER`; it cannot be recovered by this mechanism. Choose the old
+scope too. Cached older packages retain their own UI/removal policy. A consumer
+must rebuild with a deliberately updated tool pin; this does not update installed
+Agenda/ProcSight packages by itself.
+
+Automatic native logging is enabled with `MsiLogging=voicewarmupx`; result pages
+show `MsiLogFileLocation` when available. `/L*v path.log` gives deployments a
+known retained log. Conditional restart text is advisory: check engine exit codes
+(including 3010) and logs even when reboot prompts are suppressed. No app launches
+after completion. [Preview and acceptance](../docs/MSI-ACCEPTANCE.md) distinguishes
+inactive native rendering from actual servicing acceptance.
+
+References: [shortcut properties](https://learn.microsoft.com/en-us/windows/win32/msi/msishortcutproperty-table),
+[ARP location](https://learn.microsoft.com/en-us/windows/win32/msi/arpinstalllocation),
+[secure transfer](https://learn.microsoft.com/en-us/windows/win32/msi/securecustomproperties),
+[full-UI EndDialog](https://learn.microsoft.com/en-us/windows/win32/msi/enddialog-controlevent).
 
 ## Running applications
 
@@ -243,6 +326,9 @@ See [Running applications](#running-applications) before changing maintenance po
 | Database.ps1 | Native COM lifetime, parameterized SQL records and tool execution |
 | Maintenance.ps1 | Reserved files-in-use dialogs, consent/cancel events and maintenance policy inspection |
 | Scope.ps1 | Native scope properties, chooser authoring and exact scope UI inspection |
+| Registration.ps1 | Bounded shortcut/ARP registration, context-owned folder memory and three exact type-51 setters |
+| Wizard.ps1 | Declarative setup/servicing/progress/result pages and exact native UI inspection |
+| preview.ps1 | Read-only inactive native dialog preview/capture; requires `pwsh -STA` |
 | Semantics.ps1 | Complete expected table/summary comparisons before preflight/extraction |
 | Authoring.ps1 | Cabinet directives, standard tables, short/long aliases and action sequencing |
 | Inspection.ps1 | Database mappings, embedded-byte comparison and isolated read-only preflight |
@@ -265,7 +351,7 @@ after Set-Location. Payload approval and component identities normalize both sla
 styles. Paths in JSON remain relative to the payload, not relative to the config.
 
 When copying, include this entire directory including LICENSE/NOTICE and tests.
-Run all three test scripts in the destination and exercise a second product config
+Run all four test scripts in the destination and exercise a second product config
 using relative paths from a different directory. Keep publishing, signing, license
 review and dependency acquisition in consumer adapters. Do not add imports back
 into Agenda or application-specific filenames. A future shared release should be

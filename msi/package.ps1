@@ -8,7 +8,8 @@ Consumes an existing payload; never builds the application, installs a product,
 changes certificate trust or reads a repository. Signing belongs to the caller,
 which must then recompute the artifact hash.
 .PARAMETER Config
-JSON conforming to config.schema.json; asset paths are relative to payload.
+JSON conforming to config.schema.json or config-v2.schema.json; asset paths are
+relative to payload. Optional ui fields control destination editing/license text.
 .PARAMETER PayloadDirectory
 Published application directory with no links/reparse points.
 .PARAMETER Version
@@ -34,7 +35,7 @@ param(
 $ErrorActionPreference='Stop'
 # Load the standalone engine in dependency order; importing ../common here would
 # break the supported copy-only-msi deployment and its standalone regression test.
-foreach($name in @('Configuration','Identity','Payload','Database','Maintenance','Scope','Semantics','Authoring','Inspection')) { . (Join-Path $PSScriptRoot "$name.ps1") }
+foreach($name in @('Configuration','Identity','Payload','Database','Registration','Maintenance','Scope','Wizard','Semantics','Authoring','Inspection')) { . (Join-Path $PSScriptRoot "$name.ps1") }
 $configuration=Read-MsiConfiguration (Resolve-MsiPath $Config)
 Assert-MsiVersion $Version
 $payload=Resolve-MsiPath $PayloadDirectory

@@ -28,6 +28,22 @@ GUIDs and exact directories. Complete configured MSI semantics are checked befor
 costing/extraction, including upgrade rules and destinations. Scope choice uses
 native MSI tables and does not migrate existing registrations between contexts.
 
+The native wizard authors three exact type-51 property setters (folder restoration
+and ARP location), one executable-component-owned registry value for folder memory,
+and shortcut property-store metadata invoking native product uninstall. Inspection
+rejects changed/extra action or registry rows before preflight; this does not allow
+executable/script custom actions. Preflight also randomizes the folder-memory keys
+and disables RM before engine entry, so it cannot read the actual product's record.
+Selected destination and license acceptance are secured for restricted elevated
+UI-to-server transfer. These properties are data, not a privilege/sandbox boundary.
+Consumer license text is escaped plain text, never accepted RTF objects/commands.
+
+Inactive native preview is read-only. The acceptance helper's default only builds
+fresh-identity fixtures; its real lifecycle requires both `-RunLifecycle` and
+`-DisposableHost`, accepts no supplied ProductCode, and must be run on an isolated
+Windows installation. It is excluded from ordinary verification. See
+[acceptance boundaries](docs/MSI-ACCEPTANCE.md).
+
 ## Certificates and signatures
 
 Build/pack commands never create keys or change trust. Signing selects exactly

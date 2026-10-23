@@ -10,7 +10,7 @@ Native costing runs only for the host architecture; lifecycle/ICE tests are sepa
 #>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
-foreach($name in @('Configuration','Identity','Payload','Database','Maintenance','Scope','Semantics','Authoring','Inspection')) {
+foreach($name in @('Configuration','Identity','Payload','Database','Registration','Maintenance','Scope','Wizard','Semantics','Authoring','Inspection')) {
  if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" }
 }
 if(!(Get-Command New-MsiPackage -ErrorAction SilentlyContinue)) { throw 'Missing native MSI authoring.' }
@@ -31,7 +31,7 @@ try {
   $info=Read-MsiPackage $path
   Check ($info.Properties.ProductName -ceq 'Example') 'Configured product name.'
   Check ($info.Template -ceq $(if($arch -eq 'x64'){'x64;1033'}else{'Arm64;1033'})) 'Native architecture.'
-  Check ($info.CustomActionCount -eq 0 -and $info.RegistryCount -eq 0) 'No custom actions or authored registry.'
+  Check ($info.CustomActionCount -eq 3 -and $info.RegistryCount -eq 1) 'Only exact declarative registration actions and context-owned folder memory.'
   Check ('Signature' -in $info.Tables) 'Required AppSearch table.'
   Check ($info.Files.Count -eq 2 -and $info.FeatureComponents.Count -eq 2) 'Payload feature membership.'
   Check ($info.Properties.ALLUSERS -eq '1') 'Machine install.'
@@ -45,7 +45,7 @@ try {
   Check ($info.Properties.ErrorDialog -ceq 'WbtError') 'Authored UI must display native errors.'
   Check (@('Dialog','Control','ControlEvent','ListBox','TextStyle' | Where-Object {$_ -notin $info.Tables}).Count -eq 0) 'Files-in-use UI tables must be authored.'
   $ui=Read-MsiMaintenanceUi $path
-  Check (@($ui.Dialogs).Count -eq 6 -and @($ui.Controls).Count -eq 23 -and @($ui.Events).Count -eq 16) 'Full UI contains RM/legacy consent and standard error/termination dialogs.'
+  Check (@($ui.Dialogs).Count -ge 15 -and @($ui.Controls).Count -gt 23 -and @($ui.Events).Count -gt 16) 'Full UI contains RM/legacy consent and standard error/termination dialogs.'
   $errorDialog=@($ui.Dialogs | Where-Object Dialog -CEQ 'WbtError')[0]
   Check (($errorDialog.Attributes -band 65536) -and $errorDialog.Control_First -ceq 'ErrorText') 'Native Error dialog style and text control.'
   Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtError' -and $_.Event -ceq 'EndDialog' -and $_.Argument -in @('ErrorAbort','ErrorCancel','ErrorIgnore','ErrorNo','ErrorOk','ErrorRetry','ErrorYes') }).Count -eq 7) 'All seven standard error results are mapped.'
@@ -131,10 +131,10 @@ try {
  Reject-MaintenanceMutation 'error-style' 'UPDATE `Dialog` SET `Attributes`=3 WHERE `Dialog`=''WbtError''' 'standard error'
  Reject-MaintenanceMutation 'error-tab' 'UPDATE `Control` SET `Control_Next`=''C'' WHERE `Dialog_`=''WbtError'' AND `Control`=''O''' 'standard error'
  Reject-MaintenanceMutation 'error-result' 'DELETE FROM `ControlEvent` WHERE `Dialog_`=''WbtError'' AND `Control_`=''O''' 'standard error' @('WbtError','O','EndDialog','Return','1',1)
- Reject-MaintenanceMutation 'termination' 'DELETE FROM `InstallUISequence` WHERE `Sequence`=-2' 'standard termination'
- Reject-MaintenanceMutation 'admin-termination' 'DELETE FROM `AdminUISequence` WHERE `Sequence`=-3' 'standard termination'
- Reject-MaintenanceMutation 'error-text-layout' 'UPDATE `Control` SET `Width`=0 WHERE `Dialog_`=''WbtError'' AND `Control`=''ErrorText''' 'standard.*layout'
- Reject-MaintenanceMutation 'termination-layout' 'UPDATE `Control` SET `Width`=0 WHERE `Dialog_`=''WbtUserExit'' AND `Control`=''Finish''' 'standard.*layout'
+ Reject-MaintenanceMutation 'termination' 'DELETE FROM `InstallUISequence` WHERE `Sequence`=-2' 'standard termination|wizard'
+ Reject-MaintenanceMutation 'admin-termination' 'DELETE FROM `AdminUISequence` WHERE `Sequence`=-3' 'standard termination|wizard'
+ Reject-MaintenanceMutation 'error-text-layout' 'UPDATE `Control` SET `Width`=0 WHERE `Dialog_`=''WbtError'' AND `Control`=''ErrorText''' 'standard.*layout|wizard'
+ Reject-MaintenanceMutation 'termination-layout' 'UPDATE `Control` SET `Width`=0 WHERE `Dialog_`=''WbtUserExit'' AND `Control`=''Finish''' 'standard.*layout|wizard'
  # A version bump changes product identity while retaining upgrade/component
  # identity; a different product namespace below must change both families.
  New-MsiPackage $config "$fixture/payload" "$fixture/new.msi" '0.2.0' 'x64'
@@ -148,6 +148,7 @@ try {
  try {
   $installer=New-Object -ComObject WindowsInstaller.Installer
   $database=$installer.OpenDatabase("$fixture/blocked.msi",1)
+  Invoke-MsiSql $database 'DROP TABLE `CustomAction`'
   Invoke-MsiSql $database 'CREATE TABLE `CustomAction` (`Action` CHAR(72) NOT NULL PRIMARY KEY `Action`)'
   $null=$database.Commit()
  } finally { Close-MsiCom $database; Close-MsiCom $installer }

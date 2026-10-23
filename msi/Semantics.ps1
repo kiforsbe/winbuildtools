@@ -12,6 +12,9 @@ function Get-MsiSemanticColumns {
  @{
   Property=@('Property','Value')
   Icon=@('Name')
+  Registry=@('Registry','Root','Key','Name','Value','Component_')
+  CustomAction=@('Action','Type','Source','Target')
+  MsiShortcutProperty=@('MsiShortcutProperty','Shortcut_','PropertyKey','PropVariantValue')
   Directory=@('Directory','Directory_Parent','DefaultDir')
   Component=@('Component','ComponentId','Directory_','Attributes','Condition','KeyPath')
   File=@('File','Component_','FileName','FileSize','Version','Language','Attributes','Sequence')
@@ -51,8 +54,8 @@ function Assert-MsiSemantics($Snapshot,$Configuration,[object[]]$Files,[string]$
  $properties=@{
   ProductName=$product.name;ProductVersion=$Version;ProductLanguage='1033';Manufacturer=$product.manufacturer
   ProductCode=(Get-MsiPackageGuid $Configuration $Architecture "product/$Version");UpgradeCode=(Get-MsiPackageGuid $Configuration $Architecture upgrade)
-  INSTALLLEVEL='1';ARPNOMODIFY='1';REBOOT='ReallySuppress';MSIRESTARTMANAGERCONTROL='0';MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1'
-  SecureCustomProperties='OLDERVERSIONS;NEWERVERSIONS;APPWINDOWSBUILD';DefaultUIFont='WbtUIFont';ErrorDialog='WbtError'
+  INSTALLLEVEL='1';REBOOT='ReallySuppress';MsiLogging='voicewarmupx';MSIRESTARTMANAGERCONTROL='0';MSIRMSHUTDOWN='0';MSIDISABLERMRESTART='1'
+  SecureCustomProperties='OLDERVERSIONS;NEWERVERSIONS;APPWINDOWSBUILD;WBTPREVUSERPATH;WBTPREVMACHINEPATH;INSTALLFOLDER;WBTACCEPTLICENSE';DefaultUIFont='WbtUIFont';ErrorDialog='WbtError'
  }
  foreach($entry in (Get-MsiScopeProperties $Configuration).GetEnumerator()) { $properties[$entry.Key]=$entry.Value }
  $wordCount=2
@@ -63,9 +66,11 @@ function Assert-MsiSemantics($Snapshot,$Configuration,[object[]]$Files,[string]$
   if($installation.restartManager -eq 'disabled') { $properties.MSIRESTARTMANAGERCONTROL='Disable' }
   $properties.SecureCustomProperties+=';ALLUSERS;MSIINSTALLPERUSER;WBTINSTALLSCOPE'
  }
- $iconName=if($Configuration.application.icon) {'App.exe'}else{$null}
+ $iconName='App.exe'
  if($iconName) { $properties.ARPPRODUCTICON=$iconName; $rows.Icon.Add(@($iconName)) }
+ $properties.WBTMAINTENANCE='repair'
  foreach($entry in $properties.GetEnumerator()) { $rows.Property.Add(@($entry.Key,$entry.Value)) }
+ foreach($entry in (Get-MsiRegistrationDefinition $Configuration $Architecture $Files).GetEnumerator()) { foreach($row in $entry.Value.Rows) { $rows[$entry.Key].Add($row) } }
  if($Snapshot.Codepage -ne 1252 -or $Snapshot.Title -cne ($product.name+' installer') -or $Snapshot.Subject -cne $product.name -or $Snapshot.Author -cne $product.manufacturer -or $Snapshot.PageCount -ne 500 -or $Snapshot.WordCount -ne $wordCount -or $Snapshot.CreatingApplication -cne 'Generic MSI packaging' -or $Snapshot.Template -cne $(if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'})) { throw 'MSI summary metadata/privilege mismatch.' }
  $packageGuid=[guid]::Empty
  if(![guid]::TryParseExact([string]$Snapshot.PackageCode,'B',[ref]$packageGuid) -or $packageGuid -eq [guid]::Empty -or $Snapshot.PackageCode -in @($properties.ProductCode,$properties.UpgradeCode)+@($Configuration.components.Values)) { throw 'MSI package identity must be a fresh nonzero GUID.' }
@@ -120,11 +125,13 @@ function Assert-MsiSemantics($Snapshot,$Configuration,[object[]]$Files,[string]$
  foreach($entry in $actions.GetEnumerator()) { $rows.InstallExecuteSequence.Add(@($entry.Key,$null,$entry.Value)) }
  foreach($name in @('FindRelatedProducts','AppSearch','LaunchConditions','CostInitialize','FileCost','CostFinalize','MigrateFeatureStates')) { $rows.InstallUISequence.Add(@($name,$null,$actions[$name])) }
  $rows.InstallUISequence.Add(@('ExecuteAction',$null,1300))
- foreach($entry in @{WbtExit=-1;WbtUserExit=-2;WbtFatalError=-3}.GetEnumerator()) { $rows.InstallUISequence.Add(@($entry.Key,'UILevel = 5',$entry.Value)) }
- if($Configuration.schemaVersion -eq 2 -and $installation.scope -eq 'choice') { $rows.InstallUISequence.Add(@('WbtScope','NOT Installed AND UILevel = 5',10)) }
+ foreach($table in @('InstallUISequence','InstallExecuteSequence')) { foreach($row in @(Get-MsiRegistrationSequences)) { $rows[$table].Add($row) } }
+ $rows.InstallExecuteSequence.Add(@('WriteRegistryValues',$null,5000));$rows.InstallExecuteSequence.Add(@('RemoveRegistryValues',$null,2600))
+ foreach($row in (Get-MsiWizardDefinition $Configuration $Architecture).InstallUISequence.Rows) { $rows.InstallUISequence.Add($row) }
+ if($Configuration.ui.licenseText) { $rows.LaunchCondition.Add(@('Installed OR UILevel = 5 OR WBTACCEPTLICENSE = 1','Unattended installation requires explicit WBTACCEPTLICENSE=1 acceptance of the supplied license.')) }
  foreach($name in $columns.Keys) { Assert-MsiRowsMatch $name @($Snapshot.SemanticTables[$name]) $columns[$name] $rows[$name].ToArray() }
  # Restrict table presence, including empty forbidden tables, not just row counts.
- $allowed=@($columns.Keys)+@('Dialog','Control','ControlEvent','ListBox','TextStyle','AdminUISequence')
+ $allowed=@($columns.Keys)+@((Get-MsiWizardColumns).Keys)+@('ListBox','AdminUISequence')
  if($Configuration.schemaVersion -eq 2 -and $installation.scope -eq 'choice') { $allowed+='RadioButton' }
  if(@($Snapshot.Tables | Where-Object { $_ -notin $allowed }).Count) { throw 'MSI contains unsupported authoring tables.' }
 }

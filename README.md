@@ -59,6 +59,11 @@ installation; v2 accepts literal consumer-owned identities/folders, fixed user o
 machine scope, or a native Just me / All users choice, plus explicit servicing policy.
 Start with [msi/example.json](msi/example.json) and assign your own permanent
 upgradeCode. [The MSI guide](msi/README.md) documents limits and identity rules.
+Newly authored packages include a native setup/maintenance wizard, real engine
+progress, result/log pages and Start-shortcut uninstall metadata. Both schemas
+accept optional destination editing/license text and an existing application
+identity. See [native setup](msi/README.md#native-setup-and-maintenance) and the
+[non-installing preview / disposable acceptance guide](docs/MSI-ACCEPTANCE.md).
 V1 and v2 graceful MSI maintenance use Windows Installer's Restart Manager to request normal
 application shutdown, with no automatic relaunch. Interactive UI asks for consent;
 silent deployment can request shutdown without prompting. Applications must handle

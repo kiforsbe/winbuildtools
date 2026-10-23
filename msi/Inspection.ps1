@@ -4,7 +4,8 @@
 .SYNOPSIS
 Read MSI metadata, compare embedded payloads and run isolated costing preflight.
 .DESCRIPTION
-Requires Configuration, Identity, Payload, Database, Maintenance, Scope and Semantics. Inspection never
+Requires Configuration, Identity, Payload, Database, Registration, Maintenance,
+Scope, Wizard and Semantics. Inspection never
 performs an install transaction. Returned table snapshots are plain objects;
 COM/native handles are released before returning to the caller.
 #>
@@ -78,7 +79,7 @@ function New-MsiPreflightCopy([string]$Path,[string]$Destination) {
   $engine=New-Object -ComObject WindowsInstaller.Installer
   $database=$engine.OpenDatabase($Destination,1)
   $tables=@(Get-MsiRows $database _Tables @('Name') | ForEach-Object Name)
-  if('CustomAction' -in $tables) { throw 'Read-only MSI preflight does not permit custom actions.' }
+  Assert-MsiCustomActionPolicy $database
   # Never let non-installing verification start a Restart Manager shutdown path.
   # Change only the disposable database before OpenPackage initializes the engine;
   # production inspection verifies the untouched deliverable's RM policy separately.
@@ -88,6 +89,11 @@ function New-MsiPreflightCopy([string]$Path,[string]$Destination) {
    $guid=[guid]::NewGuid().ToString('B').ToUpperInvariant()
    Invoke-MsiSql $database ("UPDATE ``Property`` SET ``Value``='$guid' WHERE ``Property``='$property'")
    if($property -eq 'UpgradeCode') {
+    # Isolate the native folder-memory lookup too. Preflight must not read the
+    # real product's remembered location; target paths below are disposable.
+    $memoryKey='Software\winbuildtools\Installations\'+$guid
+    foreach($signature in @('WbtUserInstallFolder','WbtMachineInstallFolder')) { Invoke-MsiSql $database ("UPDATE ``RegLocator`` SET ``Key``='$memoryKey' WHERE ``Signature_``='$signature'") }
+    Invoke-MsiSql $database ("UPDATE ``Registry`` SET ``Key``='$memoryKey' WHERE ``Registry``='WbtRememberInstallFolder'")
     $columns=@('UpgradeCode','VersionMin','VersionMax','Language','Attributes','Remove','ActionProperty')
     $upgrades=@(Get-MsiRows $database Upgrade $columns)
     Invoke-MsiSql $database 'DELETE FROM `Upgrade`'
@@ -156,17 +162,17 @@ function Assert-MsiPreflight([string]$Path,[ValidateSet('user','machine')][strin
 function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string]$Version,[string]$Architecture,[string]$InspectionFolder) {
  $expected=@(Get-MsiPayload $Configuration $Folder $Architecture);$actual=Read-MsiPackage $Path
  Assert-MsiMaintenancePolicy $Path $actual.Properties $Configuration
- Assert-MsiScopePolicy $Path $actual $Configuration
+ Assert-MsiScopePolicy $Path $actual $Configuration $Architecture
+ Assert-MsiWizardPolicy $Path $Configuration $Architecture
  Assert-MsiSemantics $actual $Configuration $expected $Version $Architecture
  if($actual.Properties.ProductVersion -cne $Version -or $actual.Properties.ProductCode -ne (Get-MsiPackageGuid $Configuration $Architecture "product/$Version") -or $actual.Properties.UpgradeCode -ne (Get-MsiPackageGuid $Configuration $Architecture 'upgrade') -or $actual.Template -cne $(if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'})) { throw 'MSI identity/version/scope mismatch.' }
  if('Signature' -notin $actual.Tables -or 'CreateFolder' -notin $actual.Tables) { throw 'MSI is missing required search/folder tables.' }
- if('CustomAction' -in $actual.Tables -or 'Registry' -in $actual.Tables) { throw 'MSI inspection rejects custom-action and registry authoring tables.' }
  if($actual.Shortcuts.Count -ne $Configuration.shortcuts.Count) { throw 'MSI shortcut count differs from configuration.' }
  foreach($shortcut in $Configuration.shortcuts) {
   $matches=@($actual.Shortcuts | Where-Object { ($_.Name -split '\|')[-1] -ceq $shortcut.name -and $_.Target -ceq 'Main' -and $_.Directory_ -ceq 'APPMENUDIR' })
   if($matches.Count -ne 1) { throw 'MSI configured shortcut mapping mismatch.' }
  }
- if($actual.CustomActionCount -or $actual.RegistryCount -or $actual.Files.Count -ne $expected.Count -or $actual.Components.Count -ne $expected.Count -or $actual.FeatureComponents.Count -ne $expected.Count -or $actual.UpgradeCount -ne 2 -or $actual.ShortcutTarget -cne 'Main') { throw 'MSI contains unexpected actions, files, components or shortcuts.' }
+ if($actual.CustomActionCount -ne 3 -or $actual.RegistryCount -ne 1 -or $actual.Files.Count -ne $expected.Count -or $actual.Components.Count -ne $expected.Count -or $actual.FeatureComponents.Count -ne $expected.Count -or $actual.UpgradeCount -ne 2 -or $actual.ShortcutTarget -cne 'Main') { throw 'MSI contains unexpected actions, files, components or shortcuts.' }
  if($actual.Media.Count -ne 1 -or $actual.Media[0].Cabinet -cne '#payload.cab' -or [int]$actual.Media[0].LastSequence -ne $expected.Count) { throw 'MSI must contain exactly one embedded cabinet.' }
  # Folder ownership is checked separately from file mappings: a correct payload
  # must not authorize removal of unrelated application or Start-menu directories.
