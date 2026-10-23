@@ -13,8 +13,9 @@ be checked out at an exact Git revision inside application repositories.
 
 Applications own their source, product configuration, manifests, branding,
 required-file/privilege checks, dependency policy, signing identity and releases.
-The tools do not fetch their own updates, choose application dependencies,
-install products or automatically create/trust certificates during builds.
+Build/pack commands do not fetch their own updates, choose application dependencies,
+install products or create/trust certificates. The separate disposable acceptance
+helper installs synthetic fixtures only with explicit lifecycle opt-in.
 
 ## Prerequisites
 

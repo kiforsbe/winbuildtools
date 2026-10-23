@@ -279,3 +279,15 @@ baseline `9949d5cd95f426611ec137522d1ee76b4889677c`; it does not include uncommi
 edits. The exact committed candidate is checked separately after commit. Native
 14-page preview was rebuilt from the final working-tree authoring model and all
 pages rendered. `git diff --check` and 115 local document links passed.
+Post-commit `./verify.ps1 -Integration` exited 0 against implementation
+`675aaeb07ff3a927ae2c2411c6a1df798ff0590a` on Windows x64 10.0.26300,
+PowerShell 7.6.5, Windows SDK 10.0.26100.0 and installed .NET SDK 10.0.301.
+All 54 configuration, 157 v1 native, 151 v2 native and 389 wizard/registration
+checks passed, as did shared/MSIX/signing/certificate/.NET/repository checks.
+The fresh recursive consumer packaged and inspected its MSI from that exact
+committed implementation. The expected missing-assets negative fixture preceded
+successful locked restore/build/publish/execution. No installed lifecycle, trust
+change or application launch/shutdown took place. Final repository checks and
+`git diff --check` passed. This follow-up changes documentation only; VERSION
+remains 0.3.0, new behavior is Unreleased, and no push/tag/release/Actions dispatch
+was performed. Installed acceptance remains pending as listed above.
