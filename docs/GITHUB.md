@@ -1,10 +1,11 @@
 # GitHub publication and maintenance
 
 Source is published at [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools)
-with `main` as the default branch and `origin` as the local remote. Version 0.3.0
-uses the annotated tag `v0.3.0`. Private vulnerability reporting is enabled; see
-[SECURITY.md](../SECURITY.md). No hosted GitHub release, branch rules or secrets
-have been created by this setup.
+with `main` as the default branch and `origin` as the local remote. Version
+0.4.0-beta.1 uses the annotated tag `v0.4.0-beta.1` and a GitHub **prerelease**;
+0.3.0 remains the latest stable version tag. Private vulnerability reporting is
+enabled; see [SECURITY.md](../SECURITY.md). This setup creates no branch rules
+or secrets. Beta status does not establish installed lifecycle acceptance.
 
 ## Publication procedure
 
@@ -55,6 +56,12 @@ references, run `./verify.ps1 -Integration` and `git diff --check`, then commit 
 an existing release tag. Pushes and GitHub releases are separate owner-requested
 publication steps. Hosted verification is separate and runs only when explicitly
 requested; publishing does not dispatch or wait for a hosted workflow.
+
+For a beta, use a SemVer prerelease such as `0.4.0-beta.1` consistently in VERSION,
+the changelog and annotated tag. Publish its GitHub release with `prerelease=true`
+and do not mark it latest. Include unresolved acceptance limits in the release
+notes. Source archives are supplied by GitHub; do not upload synthetic fixture
+binaries, preview payloads or platform components as release assets.
 
 Keep published historical tool commits reachable. Review public commands, JSON
 schema and result fields before incompatible changes; tool release versions are

@@ -70,9 +70,9 @@ MSIs keep their previous policy. See [UI policy and acceptance requirements](../
 
 ## What consumers keep and delegate
 
-The Unreleased native-wizard work requires a deliberate pin update to its reviewed
-commit after publication, then rebuilding consumer MSIs. The `v0.3.0` examples
-above do not include this work. Keep the entire `msi/` directory when copying;
+The native-wizard work is available in beta `v0.4.0-beta.1`. To opt in, deliberately
+pin that reviewed tag/commit and rebuild consumer MSIs. The stable `v0.3.0`
+examples above do not include this work. Keep the entire `msi/` directory when copying;
 `Registration.ps1` and `Wizard.ps1` are required helpers. Existing CLI/result names
 and v1 identities are retained. Optional `ui.allowDirectoryChange`, `ui.licenseText`
 and `application.appUserModelId` are described in [native setup](../msi/README.md#native-setup-and-maintenance).

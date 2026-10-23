@@ -5,6 +5,8 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0-beta.1] - 2026-10-23
+
 ### Added
 
 - Opt-in MSI v2 accepts literal identities/folders, explicit servicing policy and

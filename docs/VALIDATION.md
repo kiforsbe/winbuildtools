@@ -291,3 +291,20 @@ change or application launch/shutdown took place. Final repository checks and
 `git diff --check` passed. This follow-up changes documentation only; VERSION
 remains 0.3.0, new behavior is Unreleased, and no push/tag/release/Actions dispatch
 was performed. Installed acceptance remains pending as listed above.
+## Beta release preparation — 2026-10-23
+
+The owner requested publication of all accumulated changes as a beta. VERSION,
+current version references and the changelog now identify `0.4.0-beta.1`; the
+Unreleased section remains open. The intended annotated tag and GitHub prerelease
+are `v0.4.0-beta.1`. No new dependencies or executable behavior were introduced
+by this release-metadata change.
+
+`./verify.ps1 -Integration` exited 0 on the release-metadata working tree:
+54 configuration, 157 v1 native, 151 v2 native and 389 wizard/registration checks,
+plus common/MSIX/signing/certificate/.NET/repository checks. The fresh recursive
+consumer used committed implementation/documentation baseline
+`f4cf072d5d63edade2b30de1a654c0a65ff0362a`; an additional consumer check of the
+release commit precedes tagging/publication. `git diff --check` passed.
+Installed acceptance remains pending exactly as recorded above and is included
+in the beta release notes. GitHub Actions was not dispatched. Publication uses
+source archives only, without synthetic payloads or platform binary assets.

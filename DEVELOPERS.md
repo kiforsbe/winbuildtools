@@ -68,9 +68,10 @@ termination custom actions or run a shutdown/install transaction during automate
 verification. An installed older MSI keeps its cached policy until a separately
 validated servicing path replaces it.
 
-Tool version 0.3.0 (`v0.3.0`) retains the command, configuration and result-field
-contracts, and changes newly authored MSI maintenance to the Restart Manager
-policy above. Inspection now requires its maintenance policy and native UI tables.
+Tool version 0.4.0-beta.1 (`v0.4.0-beta.1`) retains the command and result-field
+contracts, extends v1/v2 with optional presentation fields, and includes the native
+setup/servicing wizard and bounded registration described below. Inspection
+requires the matching maintenance, registration and native UI tables.
 Applications must implement graceful Windows shutdown and validate servicing;
 older built/cached MSIs are unchanged. Hosted at
 [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
