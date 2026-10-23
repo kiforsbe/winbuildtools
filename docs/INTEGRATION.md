@@ -19,12 +19,12 @@ these mechanisms through the same pinned checkout.
 
 ## Add the published tools
 
-Use the published URL and a reviewed release or full commit (for example v0.3.0).
+Use the published URL and a reviewed release or full commit (for example v0.4.0).
 These commands are a deliberate integration/update operation, never a build step.
 
 ```powershell
 git submodule add https://github.com/kiforsbe/winbuildtools.git external/winbuildtools
-git -C external/winbuildtools checkout --detach v0.3.0
+git -C external/winbuildtools checkout --detach v0.4.0
 git add .gitmodules external/winbuildtools
 git commit -m "Pin Windows build tools"
 ```
@@ -70,9 +70,9 @@ MSIs keep their previous policy. See [UI policy and acceptance requirements](../
 
 ## What consumers keep and delegate
 
-The native-wizard work is available in beta `v0.4.0-beta.1`. To opt in, deliberately
-pin that reviewed tag/commit and rebuild consumer MSIs. The stable `v0.3.0`
-examples above do not include this work. Keep the entire `msi/` directory when copying;
+The native-wizard work is included in `v0.4.0`, promoted from `v0.4.0-beta.1`
+without executable changes. Deliberately pin the reviewed release/commit and rebuild
+consumer MSIs. Keep the entire `msi/` directory when copying;
 `Registration.ps1` and `Wizard.ps1` are required helpers. Existing CLI/result names
 and v1 identities are retained. Optional `ui.allowDirectoryChange`, `ui.licenseText`
 and `application.appUserModelId` are described in [native setup](../msi/README.md#native-setup-and-maintenance).

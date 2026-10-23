@@ -308,3 +308,19 @@ release commit precedes tagging/publication. `git diff --check` passed.
 Installed acceptance remains pending exactly as recorded above and is included
 in the beta release notes. GitHub Actions was not dispatched. Publication uses
 source archives only, without synthetic payloads or platform binary assets.
+## Stable 0.4.0 release preparation — 2026-10-23
+
+The owner explicitly requested promotion to a proper release. Version `0.4.0`
+retains the beta's executable code and dependencies, updates current version and
+consumer-pin references, and preserves the beta changelog/tag/release. Stable
+release notes retain the same installed acceptance limitations; no additional
+installed testing or lifecycle acceptance is implied by promotion.
+
+`./verify.ps1 -Integration` exited 0 on the stable metadata working tree:
+54 configuration, 157 v1 native, 151 v2 native and 389 wizard/registration checks,
+plus common/MSIX/signing/certificate/.NET/repository checks and 121 local document
+links. The recursive consumer used beta commit
+`23aaea448133df02d182a8e5702d8c7680a99496`; the exact stable release commit receives
+an additional consumer check before publication. `git diff --check` passed.
+GitHub Actions was not dispatched. Publication creates an annotated `v0.4.0` tag
+and a stable GitHub release; it includes no synthetic fixture/platform assets.

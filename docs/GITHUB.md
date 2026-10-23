@@ -2,10 +2,10 @@
 
 Source is published at [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools)
 with `main` as the default branch and `origin` as the local remote. Version
-0.4.0-beta.1 uses the annotated tag `v0.4.0-beta.1` and a GitHub **prerelease**;
-0.3.0 remains the latest stable version tag. Private vulnerability reporting is
+0.4.0 uses the annotated tag `v0.4.0` and a stable GitHub release;
+the earlier `v0.4.0-beta.1` tag/prerelease remains available. Private vulnerability reporting is
 enabled; see [SECURITY.md](../SECURITY.md). This setup creates no branch rules
-or secrets. Beta status does not establish installed lifecycle acceptance.
+or secrets. Release status does not establish installed lifecycle acceptance.
 
 ## Publication procedure
 
