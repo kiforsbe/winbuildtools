@@ -46,13 +46,13 @@
   "ui": {
     "completion": {
       "messages": {
-        "installed": "Example is ready to use.",
-        "removed": "Example has been removed.",
-        "restartRequired": "Restart Windows to finish applying changes.",
-        "updated": "The new version is ready.",
-        "failed": "Setup failed. Review the log before retrying.",
-        "canceled": "Setup was canceled. Review the log if needed.",
-        "repaired": "Application files have been restored."
+        "installed": "Installation complete.",
+        "removed": "Uninstallation complete.",
+        "restartRequired": "Restart Windows to complete setup.",
+        "updated": "Update complete.",
+        "failed": "Setup failed. See the log for details.",
+        "canceled": "Setup was canceled.",
+        "repaired": "Repair complete."
       },
       "showDetails": true,
       "releaseNotesUrl": "https://example.com/releases",

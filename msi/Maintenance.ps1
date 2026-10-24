@@ -28,9 +28,9 @@ function Add-MsiMaintenanceUi($Installer,$Database) {
   $primary=if($useRm) {'Close'}else{'Retry'}
   $buttonText=if($useRm) {'&Close applications'}else{'&Retry'}
   $message=if($useRm) {
-   'Setup needs files used by these applications. Save your work, then choose Close applications to request shutdown. Applications will not be reopened automatically. To close them yourself, cancel setup and try again.'
+   'These applications must close before setup can continue. Save your work, then click Close applications.'
   }else{
-   'Close the applications listed below, including tray icons, then choose Retry. Continue without closing may require a reboot. Cancel exits setup.'
+   'Close the applications below, then click Retry. Continuing without closing them may require a restart.'
   }
   # 19 = Visible | Modal | KeepModeless. Cancel is the safe Enter/Escape default;
   # the message precedes the list in the closed tab cycle for screen readers.

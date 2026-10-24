@@ -80,7 +80,7 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
   Event WbtOptions Browse SpawnDialog WbtBrowse '1' 2
   Event WbtOptions Next CheckTargetPath WBTINSTALLPATH '1' 0
   Cycle WbtOptions @('Path','Browse','Back','Next','Cancel')
-  SimplePage WbtBrowse 'Choose a destination folder' 'Choose an existing folder or enter a new destination path.' Path OK Cancel
+  SimplePage WbtBrowse 'Select a folder' 'Choose an existing folder or enter a path.' Path OK Cancel
   Control WbtBrowse Path PathEdit 20 92 360 22 3 WBTBROWSEPATH $null
   Control WbtBrowse Folders DirectoryList 20 124 360 100 7 WBTBROWSEPATH 'Destination folders'
   Control WbtBrowse Up PushButton 144 254 74 23 3 $null '&Up'
@@ -97,7 +97,7 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
  # Diagnostic details are shared by result pages. The path/log fields are native
  # read-only edits so long values can be selected/copied without launching tools.
  if($details) {
-  SimplePage WbtInstallDetails 'Installation details' 'Use the setup log when checking the installation result.' Location Close Close
+  SimplePage WbtInstallDetails 'Installation details' '' Location Close Close
   Control WbtInstallDetails Version Text 20 90 360 18 3 $null ('Version: [ProductVersion]    Architecture: '+$Architecture)
   Control WbtInstallDetails UserScope Text 20 111 360 18 2 $null 'Installation context: current user'
   Control WbtInstallDetails MachineScope Text 20 111 360 18 2 $null 'Installation context: all users'
@@ -119,10 +119,10 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
  $restart='ReplacedInUseFiles'
  $offer='UILevel = 5 AND NOT Installed AND NOT REMOVE AND NOT REINSTALL AND NOT ReplacedInUseFiles'
  $states=@(
-  @('Installed','NOT REMOVE AND NOT REINSTALL AND NOT Installed AND NOT OLDERVERSIONS','[ProductName] was installed successfully',(Message installed 'Find [ProductName] in your Start menu. You can start using it right away.')),
-  @('Updated','NOT REMOVE AND NOT REINSTALL AND NOT Installed AND OLDERVERSIONS','[ProductName] is up to date',(Message updated 'The new version is installed. Your personal application data has been kept.')),
-  @('Repaired','NOT REMOVE AND (Installed OR REINSTALL)','[ProductName] was repaired successfully',(Message repaired 'Application files and shortcuts have been restored.')),
-  @('Removed','REMOVE~="ALL"','[ProductName] was removed',(Message removed 'The application and its shortcuts have been removed. Personal application data has been kept.'))
+  @('Installed','NOT REMOVE AND NOT REINSTALL AND NOT Installed AND NOT OLDERVERSIONS','[ProductName] installation complete',(Message installed 'Click Finish to close setup.')),
+  @('Updated','NOT REMOVE AND NOT REINSTALL AND NOT Installed AND OLDERVERSIONS','[ProductName] update complete',(Message updated 'Click Finish to close setup.')),
+  @('Repaired','NOT REMOVE AND (Installed OR REINSTALL)','[ProductName] repair complete',(Message repaired 'Click Finish to close setup.')),
+  @('Removed','REMOVE~="ALL"','[ProductName] uninstalled',(Message removed 'Click Finish to close setup.'))
  )
  foreach($dialog in @('WbtExit','WbtUserExit','WbtFatalError')) {
   RemoveControl $dialog @('Heading','Subtitle','Message','Log','Restart')
@@ -138,11 +138,11 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
     Control $dialog ('Message'+$state[0]) Text $x $messageY $width 60 $attributes $null $state[3]
     Visibility $dialog ('Message'+$state[0]) ('('+$state[1]+') AND NOT ('+$restart+')')
    }
-   Control $dialog Restart Text $x $messageY $width 60 2 $null (Message restartRequired 'Restart Windows to finish applying changes to [ProductName].')
+   Control $dialog Restart Text $x $messageY $width 60 2 $null (Message restartRequired 'Restart Windows to complete setup.')
    Visibility $dialog Restart $restart
   } else {
-   $heading=if($dialog -ceq 'WbtUserExit'){'[ProductName] setup was canceled'}else{'[ProductName] setup could not complete'}
-   $message=if($dialog -ceq 'WbtUserExit'){Message canceled 'The operation did not complete. Review the setup log if recovery or a restart is needed.'}else{Message failed 'An error prevented setup from finishing. Review the setup log before trying again.'}
+   $heading=if($dialog -ceq 'WbtUserExit'){'[ProductName] setup canceled'}else{'[ProductName] setup failed'}
+   $message=if($dialog -ceq 'WbtUserExit'){Message canceled 'Setup was canceled. Click Finish to close.'}else{Message failed 'Setup could not complete. See the log for error details.'}
    Control $dialog Heading Text $x $headingY $width $headingH 3 $null ('{\WbtHeading}'+$heading)
    Control $dialog Message Text $x $messageY $width 58 3 $null $message
    Control $dialog Log Text $x 158 $width 48 2 $null 'Setup log: [MsiLogFileLocation]'
@@ -151,7 +151,7 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
   $cycle=[Collections.Generic.List[string]]::new();$cycle.Add('Finish')
   if($dialog -ceq 'WbtExit') {
    if($completion.launchApplication) {
-    Control $dialog Launch CheckBox $x 157 $width 30 3 WBTLAUNCHAPP 'Run [ProductName] when I click Finish'
+    Control $dialog Launch CheckBox $x 157 $width 30 3 WBTLAUNCHAPP 'Launch [ProductName]'
     Row CheckBox @('WBTLAUNCHAPP','1');Visibility $dialog Launch $offer;$cycle.Add('Launch')
     $file=Get-MsiId F ([guid]$Configuration.product.upgradeCode) ($Architecture+'/'+$Configuration.application.executable.Replace('\','/'))
     Event $dialog Finish MsiLaunchApp ('"[#'+$file+']"') ('WBTLAUNCHAPP = 1 AND '+$offer) 2
@@ -165,7 +165,7 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
    }
   }
   if($details) {
-   Control $dialog Details PushButton $x 215 132 21 3 $null 'Installation &details...'
+   Control $dialog Details PushButton $x 215 132 21 3 $null '&Details...'
    Event $dialog Details SpawnDialog WbtInstallDetails;$cycle.Add('Details')
   }
   Cycle $dialog $cycle.ToArray()

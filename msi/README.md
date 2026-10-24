@@ -185,8 +185,8 @@ Absent optional pages are skipped. Choices and Back navigation finish before
 related-product discovery/costing. A same-product launch offers Repair/Remove;
 `msiexec /x {ProductCode}` opens removal confirmation directly. Maintenance never
 offers a scope change. Repair/removal use native feature-state events. Windows
-Installer owns progress ticks, rollback and files-in-use handling. Welcome uses
-neutral instructions; the engine requests application closure only when files
+Installer owns progress ticks, rollback and files-in-use handling. The wizard uses
+concise installation wording; the engine requests application closure only when files
 are in use. A single modeless progress page opens after Install consent, before
 discovery/costing. Post-cost maintenance/upgrade/error confirmations retain it
 with the native KeepModeless flag; termination pages replace it. Full UI asks
@@ -210,13 +210,13 @@ Both schemas accept these optional presentation fields:
     "releaseNotesUrl": "https://example.com/releases",
     "helpUrl": "https://example.com/getting-started",
     "messages": {
-      "installed": "The application is ready to use.",
-      "updated": "The new version is ready.",
-      "repaired": "Application files have been restored.",
-      "removed": "The application has been removed.",
-      "canceled": "Setup was canceled. Review the log if needed.",
-      "failed": "Setup failed. Review the log before retrying.",
-      "restartRequired": "Restart Windows to finish applying changes."
+      "installed": "Installation complete.",
+      "updated": "Update complete.",
+      "repaired": "Repair complete.",
+      "removed": "Uninstallation complete.",
+      "canceled": "Setup was canceled.",
+      "failed": "Setup failed. See the log for details.",
+      "restartRequired": "Restart Windows to complete setup."
     }
   }
 }

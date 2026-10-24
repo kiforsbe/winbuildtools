@@ -28,7 +28,7 @@ function Get-MsiScopeDefinition($Configuration,[string]$Architecture) {
    ,@('WbtScope',50,50,400,290,3,'[ProductName] Setup','ScopeChoice','Continue','Cancel'))}
   Control=@{Columns=@('Dialog_','Control','Type','X','Y','Width','Height','Attributes','Property','Text','Control_Next');Rows=@(
    @('WbtScope','Message','Text',20,16,360,25,3,$null,'{\WbtHeading}Installation scope',$null),
-   @('WbtScope','Subtitle','Text',20,44,360,34,3,$null,'Choose who can use [ProductName]. Changing scope later requires uninstalling first.',$null),
+   @('WbtScope','Subtitle','Text',20,44,360,34,3,$null,'Select who can use [ProductName].',$null),
    @('WbtScope','ScopeChoice','RadioButtonGroup',20,94,360,105,3,'WBTINSTALLSCOPE',$null,'Continue'),
    @('WbtScope','Continue','PushButton',226,254,74,23,3,$null,'&Continue','Cancel'),
    @('WbtScope','Cancel','PushButton',308,254,74,23,3,$null,'Cancel','Back'),

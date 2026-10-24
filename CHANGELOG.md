@@ -7,6 +7,8 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ### Fixed
 
+- MSI wizard text uses concise, conventional installation wording throughout,
+  including completion, cancellation and the optional Launch checkbox.
 - Fixed-folder MSI installs skip the redundant Options page; progress appears
   before discovery/costing and stays available across maintenance confirmations.
 - MSI completion ignores unrelated machine pending restarts, retains opt-in Run

@@ -442,3 +442,23 @@ fixture. `git diff --check` and the post-documentation repository checks passed.
 The post-commit recursive consumer packaged and inspected successfully at exact
 implementation `1864dfbb4bd0a65b2288b687440844a8677a5002`. This follow-up changes
 the verification record only. The candidate remains local and Unreleased.
+
+## Wizard wording follow-up — 2026-10-24
+
+The owner requested concise, professional installation wording similar to familiar
+MSI wizards. This follow-up revises labels/instructions and removes UAC caveats,
+Start-menu narration, rollback commentary and personal-data promises. Consumer
+message overrides, routing, native actions and transaction restart/launch gates
+remain unchanged. No third-party string collection or dependency was imported.
+
+Fresh `./verify.ps1 -Integration` exited 0: configuration 68, v1 157, v2 151,
+wizard/registration 465 and presentation 980; shared/MSIX/signing/certificate/
+.NET/repository checks passed with 131 links. Lower UI assertion totals reflect
+the removed explanatory controls, not removed tests. The recursive consumer used
+the prior committed candidate `00baed2b`; an exact post-commit checkout is checked
+separately. Native previews covered Welcome, Ready, Progress, Finish and Details
+in both layouts, including the empty Details subtitle. `git diff --check` passed.
+The reported missing-logo capture was resolved by inspecting PNG pixels: both
+consumer Ready/Finish captures and the generic Finish capture contain 763 blue
+logo pixels in the same header region, with identical embedded logo hashes.
+No rendering change was needed. Installed acceptance remains pending.

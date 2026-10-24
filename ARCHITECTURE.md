@@ -216,6 +216,9 @@ launch uses one native `MsiLaunchApp` event for the configured executable File k
 with no command/argument extension point. Repair/removal/transaction-restart/silent
 paths cannot satisfy it. Consumer HTTPS links are HTML-escaped and opened only by
 native Hyperlink controls. Messages escape MSI brackets and preserve ampersands.
+Default text uses concise installation wording; optional consumer message overrides
+remain available. Guidance for UAC, Start-menu use and rollback internals stays in
+the documentation, with failure diagnostics and genuine restart instructions in UI.
 Scope retains its own exact model, applying the shared header logo separately.
 Completion gates use transaction `ReplacedInUseFiles`, never machine-wide
 `MsiSystemRebootPending`. General reboot session modes are not table properties;

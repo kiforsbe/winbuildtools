@@ -81,8 +81,8 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
  Row TextStyle @('WbtHeading','Segoe UI',12,$null,1)
  Row UIText @('TimeRemaining','Time remaining: [1] minutes [2] seconds')
 
- Page WbtWelcome 'Welcome to [ProductName] Setup' 'Setup will install [ProductName] [ProductVersion] on your computer.'
- Control WbtWelcome Message Text 20 95 360 95 3 $null 'Select Next to continue. Setup will ask if an application needs to close during installation.'
+ Page WbtWelcome 'Welcome to [ProductName] Setup' 'Install [ProductName] [ProductVersion].'
+ Control WbtWelcome Message Text 20 95 360 95 3 $null 'Click Next to continue, or Cancel to exit.'
  Buttons WbtWelcome '&Next' $false
  if($choice) { Event WbtWelcome Next NewDialog WbtScope }
  else {
@@ -96,11 +96,10 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
  # A fixed destination is shown once on Ready. Only author Options when it has
  # an editable choice; every Back/forward route follows the same optional chain.
  if($editable) {
- Page WbtOptions 'Installation options' 'Review the destination for this installation.' $(if($editable){'Path'}else{'Next'})
- Control WbtOptions FolderLabel Text 20 94 360 20 3 $null 'Destination folder:'
+ Page WbtOptions 'Destination folder' 'Choose an installation folder.' $(if($editable){'Path'}else{'Next'})
+ Control WbtOptions FolderLabel Text 20 94 360 20 3 $null 'Install [ProductName] in:'
  if($editable) { Control WbtOptions Path Edit 20 118 360 28 3 WBTINSTALLPATH $null Back }
  else { Control WbtOptions Path Text 20 118 360 42 3 $null '[WBTINSTALLPATH]' }
- Control WbtOptions ScopeInfo Text 20 173 360 48 3 $null 'The application will be installed for the selected Windows installation context. Changing scope later requires uninstalling the previous installation.'
  Buttons WbtOptions '&Next'
  if($editable) {
   # Include the path editor in the active-control cycle; disabled Back is skipped
@@ -112,9 +111,9 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
  Event WbtOptions Next NewDialog $(if($license){'WbtLicense'}else{'WbtReady'}) 'WBTINSTALLPATH' 1
  }
  if($license) {
-  Page WbtLicense 'License agreement' 'Read the agreement before continuing.' License
+  Page WbtLicense 'License agreement' 'Review the terms below.' License
   Control WbtLicense License ScrollableText 20 88 360 119 3 $null (ConvertTo-MsiLicenseRtf $license) Accept
-  Control WbtLicense Accept CheckBox 20 215 360 18 3 WBTACCEPTLICENSE 'I &accept the license agreement' Back
+  Control WbtLicense Accept CheckBox 20 215 360 18 3 WBTACCEPTLICENSE 'I &accept the license terms' Back
   Row CheckBox @('WBTACCEPTLICENSE','1')
   Buttons WbtLicense '&Next'
   $cancel=@($model.Control.Rows | Where-Object {$_[0] -ceq 'WbtLicense' -and $_[1] -ceq 'Cancel'})[0];$cancel[10]='License'
@@ -123,9 +122,8 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
   Event WbtLicense Back NewDialog $beforeLicense
   Event WbtLicense Next NewDialog WbtReady 'WBTACCEPTLICENSE = 1'
  }
- Page WbtReady 'Ready to install [ProductName]' 'Select Install to validate your choices and begin installation.'
+ Page WbtReady 'Ready to install [ProductName]' 'Click Install to begin.'
  Control WbtReady Details Text 20 92 360 95 3 $null "Application: [ProductName] [ProductVersion]`r`nDestination: [WBTINSTALLPATH]"
- Control WbtReady Elevation Text 20 193 360 36 3 $null 'Windows may request administrator approval if this installation requires it.'
  Buttons WbtReady '&Install'
  Event WbtReady Back NewDialog $(if($license){'WbtLicense'}else{$beforeLicense})
  Event WbtReady Next '[INSTALLFOLDER]' '[WBTINSTALLPATH]' 'WBTINSTALLPATH' 1
@@ -135,10 +133,10 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
  # are no longer revisited here; maintenance never rewrites scope or destination.
  # KeepModeless (16) preserves early progress while a post-cost modal choice is
  # open. Result pages intentionally omit it so they replace the progress window.
- Page WbtMaintenance 'Maintain [ProductName]' 'Choose the operation for the installed application.' Mode -Attributes 19
+ Page WbtMaintenance '[ProductName] maintenance' 'Select Repair or Remove.' Mode -Attributes 19
  Control WbtMaintenance Mode RadioButtonGroup 20 94 360 115 3 WBTMAINTENANCE $null Next
- Row RadioButton @('WBTMAINTENANCE',1,'repair',0,0,348,42,'&Repair application files and shortcuts',$null)
- Row RadioButton @('WBTMAINTENANCE',2,'remove',0,58,348,42,'&Remove the installed application',$null)
+ Row RadioButton @('WBTMAINTENANCE',1,'repair',0,0,348,42,'&Repair the installation',$null)
+ Row RadioButton @('WBTMAINTENANCE',2,'remove',0,58,348,42,'&Remove [ProductName]',$null)
  Buttons WbtMaintenance '&Next' $false
  $cancel=@($model.Control.Rows | Where-Object {$_[0] -ceq 'WbtMaintenance' -and $_[1] -ceq 'Cancel'})[0];$cancel[10]='Mode'
   $back=@($model.Control.Rows | Where-Object {$_[0] -ceq 'WbtMaintenance' -and $_[1] -ceq 'Back'})[0];$back[10]=$null
@@ -151,10 +149,11 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
  Event WbtMaintenance Next NewDialog WbtRepair 'WBTMAINTENANCE = "repair"' 7
  Event WbtMaintenance Next NewDialog WbtRemove 'WBTMAINTENANCE = "remove"' 8
  foreach($name in @('WbtRemove','WbtRepair','WbtUpgrade')) {
-  $title=switch($name) {WbtRemove {'Remove [ProductName]?'} WbtRepair {'Ready to repair [ProductName]'} WbtUpgrade {'Ready to upgrade [ProductName]'}}
-  $verb=switch($name) {WbtRemove {'&Remove'} WbtRepair {'&Repair'} WbtUpgrade {'&Upgrade'}}
-  $message=switch($name) {WbtRemove {'The installed application and its shortcuts will be removed. Personal application data will be kept.'} WbtRepair {'Windows Installer will restore missing or damaged application files and shortcuts. Personal application data will be kept.'} WbtUpgrade {'An earlier version was detected in this installation context. It will be replaced by [ProductName] [ProductVersion]. Personal application data will be kept.'}}
-  Page $name $title 'Confirm the operation before continuing.' -Attributes 19
+  $title=switch($name) {WbtRemove {'Remove [ProductName]'} WbtRepair {'Repair [ProductName]'} WbtUpgrade {'Update [ProductName]'}}
+  $verb=switch($name) {WbtRemove {'&Remove'} WbtRepair {'&Repair'} WbtUpgrade {'&Update'}}
+  $subtitle=switch($name) {WbtRemove {'Click Remove to uninstall.'} WbtRepair {'Click Repair to continue.'} WbtUpgrade {'Click Update to continue.'}}
+  $message=switch($name) {WbtRemove {'[ProductName] will be removed from this computer.'} WbtRepair {'Setup will repair the installed application.'} WbtUpgrade {'Setup will update [ProductName] to version [ProductVersion].'}}
+  Page $name $title $subtitle -Attributes 19
   Control $name Message Text 20 94 360 85 3 $null $message
   Control $name Location Text 20 188 360 36 3 $null 'Installation folder: [INSTALLFOLDER]'
   Buttons $name $verb ($name -ne 'WbtUpgrade')
@@ -173,8 +172,8 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
   } else { Event $name Next EndDialog Return }
  }
 
- Page WbtProgress 'Applying changes to [ProductName]' 'Please wait while Windows Installer completes the operation.' Cancel Cancel Cancel 1
- Control WbtProgress Action Text 20 99 360 36 3 $null 'Preparing application files...'
+ Page WbtProgress '[ProductName] Setup' 'Setup is in progress.' Cancel Cancel Cancel 1
+ Control WbtProgress Action Text 20 99 360 36 3 $null 'Preparing...'
  Control WbtProgress Progress ProgressBar 20 146 360 15 65537 $null $null
  Control WbtProgress Detail Text 20 172 360 33 3 $null ' '
  Control WbtProgress Remaining Text 20 211 360 19 3 $null ' '
@@ -190,8 +189,8 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
  Row EventMapping @('WbtProgress','Remaining','TimeRemaining','TimeRemaining')
  # ProgressBar direction/ticks, including reversed rollback progress, come from
  # MSI's SetProgress event. No guessed percentage, timer, or forced process exit.
- Page WbtCancelConfirm 'Cancel setup?' 'Do you want to stop the current operation?' Continue Continue Continue 19
- Control WbtCancelConfirm Message Text 20 96 360 95 3 $null 'If changes have already begun, Windows Installer will attempt to undo them. Select Continue setup to keep going.'
+ Page WbtCancelConfirm 'Cancel setup?' '' Continue Continue Continue 19
+ Control WbtCancelConfirm Message Text 20 96 360 95 3 $null 'Do you want to cancel setup?'
  Control WbtCancelConfirm Continue PushButton 186 254 114 23 3 $null '&Continue setup' Yes
  Control WbtCancelConfirm Yes PushButton 308 254 74 23 3 $null 'Cancel &setup' Continue
  Event WbtCancelConfirm Continue EndDialog Return
@@ -207,9 +206,9 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
  # maintenance/reduced UI also use this single row, with no second progress page.
  Row InstallUISequence @('WbtProgress','UILevel >= 4',10)
  foreach($result in @(
-  @('WbtExit',-1,'Setup completed','The requested operation completed.','Select Finish to close setup.'),
-  @('WbtUserExit',-2,'Setup canceled','The requested operation was canceled.','Windows Installer attempts to undo changes when an operation is canceled. Review the log if a restart or recovery is required.'),
-  @('WbtFatalError',-3,'Setup could not complete','The requested operation did not complete.','Review the error details and installation log before retrying. Do not use incomplete output as a successful installation.')
+  @('WbtExit',-1,'Setup complete','','Click Finish to close setup.'),
+  @('WbtUserExit',-2,'Setup canceled','','Click Finish to close setup.'),
+  @('WbtFatalError',-3,'Setup failed','','See the log for error details.')
  )) {
   $name=[string]$result[0]
   Page $name ([string]$result[2]) ([string]$result[3]) Finish Finish Finish
