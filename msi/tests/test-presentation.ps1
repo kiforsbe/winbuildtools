@@ -45,7 +45,7 @@ try {
   Check (@($ui.Controls | Where-Object { $_.Dialog_ -ceq 'WbtExit' -and $_.Type -ceq 'Hyperlink' -and $_.Text.Contains('&amp;') }).Count -eq 1) 'HTTPS links are escaped without losing query separators.'
   $launch=@($ui.Events | Where-Object Event -CEQ MsiLaunchApp)
   $file=@($info.SemanticTables.File | Where-Object FileName -Match 'Example.exe')[0]
-  Check ($launch.Count -eq 1 -and $launch[0].Argument -ceq ('"[#'+$file.File+']"')) 'Launch is exact installed executable identity, without arbitrary command arguments.'
+  Check ($launch.Count -eq 1 -and $launch[0].Argument -ceq ('[#'+$file.File+']')) 'Launch is exact native File-key token, without quotes or arbitrary command arguments.'
   foreach($condition in @('UILevel = 5','WBTLAUNCHAPP = 1','NOT Installed','NOT REMOVE','NOT REINSTALL','NOT ReplacedInUseFiles')) { Check ($launch[0].Condition.Contains($condition)) "Launch gating must include $condition" }
   Check (!$info.Properties.ContainsKey('WBTLAUNCHAPP')) 'Launch choice is initially unchecked.'
   Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtBrowse' -and $_.Event -ceq 'CheckTargetPath' -and $_.Ordering -eq '1' }).Count -eq 1) 'Browse validates before committing the selection.'

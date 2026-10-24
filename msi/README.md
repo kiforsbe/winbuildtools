@@ -268,10 +268,12 @@ See Microsoft's [transaction file-replacement signal](https://learn.microsoft.co
 [native ICO selection](https://learn.microsoft.com/en-us/windows/win32/msi/icon-control)
 and [KeepModeless behavior](https://learn.microsoft.com/en-us/windows/win32/msi/keepmodeless-dialog-style-bit).
 
-The Run checkbox never defaults to checked and is absent during repair, removal,
+The Launch checkbox never defaults to checked and is absent during repair, removal,
 failure/cancellation, reduced/basic/silent UI or transaction in-use replacement. Its
 native `MsiLaunchApp` event accepts only the configured executable's installed File
-key, with no command/argument fields. Actual launch identity/privilege behavior
+key as an unquoted `[#FileKey]` token, with no command/argument fields. MSI resolves
+the token to a complete path, including spaces; ordinary command-line quoting
+breaks this native event. Actual launch identity/privilege behavior
 still needs disposable-host acceptance, especially when setup was started elevated.
 No launch or URL is followed during packaging, inspection, preview or verification.
 

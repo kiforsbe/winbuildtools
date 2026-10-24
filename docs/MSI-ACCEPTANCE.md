@@ -37,6 +37,19 @@ set. Validate actual browsing/editing on the disposable host, not from that capt
 
 ## Prepare a synthetic acceptance kit
 
+### Native Finish launch regression without installation
+
+On a Windows desktop, run `pwsh -NoProfile -File msi/tests/test-launch.ps1` explicitly.
+It starts a bounded STA subprocess, builds an inert marker executable with the
+Windows .NET Framework compiler and opens only the Finish dialog on isolated
+packages whose UI/execute sequences were emptied. Native costing resolves the
+fixture path, including spaces. Finish must launch the marker when selected,
+including with an unrelated machine pending restart; unchecked and transaction
+restart cases must not launch it. No installed product, shortcut, trust entry or
+real application is changed. This desktop-dependent test is separate from
+`verify.ps1` and hosted verification. It does not prove launch privilege behavior
+after an elevated install or full installed servicing.
+
 This default command is non-installing and may be run on a development host:
 
 ```powershell

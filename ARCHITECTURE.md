@@ -214,7 +214,11 @@ operation-specific result headings/messages. Browse commits only a validated
 temporary path and has no pre-install directory-creation action. Full-UI success
 launch uses one native `MsiLaunchApp` event for the configured executable File key,
 with no command/argument extension point. Repair/removal/transaction-restart/silent
-paths cannot satisfy it. Consumer HTTPS links are HTML-escaped and opened only by
+paths cannot satisfy it. The argument is the native unquoted `[#FileKey]` token;
+MSI resolves paths with spaces internally. A separately invoked, bounded native
+launch fixture opens only a final dialog on a sequence-empty isolated package and
+runs an owned marker executable, with no installation or registration transaction.
+Consumer HTTPS links are HTML-escaped and opened only by
 native Hyperlink controls. Messages escape MSI brackets and preserve ampersands.
 Default text uses concise installation wording; optional consumer message overrides
 remain available. Guidance for UAC, Start-menu use and rollback internals stays in

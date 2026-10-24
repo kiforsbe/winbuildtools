@@ -154,7 +154,10 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
     Control $dialog Launch CheckBox $x 157 $width 30 3 WBTLAUNCHAPP 'Launch [ProductName]'
     Row CheckBox @('WBTLAUNCHAPP','1');Visibility $dialog Launch $offer;$cycle.Add('Launch')
     $file=Get-MsiId F ([guid]$Configuration.product.upgradeCode) ($Architecture+'/'+$Configuration.application.executable.Replace('\','/'))
-    Event $dialog Finish MsiLaunchApp ('"[#'+$file+']"') ('WBTLAUNCHAPP = 1 AND '+$offer) 2
+    # MsiLaunchApp parses the File-key token before resolving its path. Quotes
+    # make that token invalid, even though ordinary command lines need quoting.
+    # The native token itself remains safe for installed paths containing spaces.
+    Event $dialog Finish MsiLaunchApp ('[#'+$file+']') ('WBTLAUNCHAPP = 1 AND '+$offer) 2
    }
    $linkX=$x
    foreach($link in @(@('ReleaseNotesLink','releaseNotesUrl','Release notes'),@('HelpLink','helpUrl','Getting started'))) {

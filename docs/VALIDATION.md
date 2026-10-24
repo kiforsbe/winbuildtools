@@ -462,3 +462,29 @@ The reported missing-logo capture was resolved by inspecting PNG pixels: both
 consumer Ready/Finish captures and the generic Finish capture contain 763 blue
 logo pixels in the same header region, with identical embedded logo hashes.
 No rendering change was needed. Installed acceptance remains pending.
+
+## Native Finish launch correction — 2026-10-24
+
+Installed consumer acceptance found that selecting Launch did not start the app.
+The real log confirmed `WBTLAUNCHAPP=1` and normal success, so condition-only and
+table checks had missed a native event argument defect. An isolated final-dialog
+probe compared both event orders: quoted `"[#FileKey]"` failed in both; raw
+`[#FileKey]` launched an owned marker executable in both, including paths with
+spaces. Event ordering was therefore preserved; only the argument was corrected.
+
+`pwsh -NoProfile -File msi/tests/test-launch.ps1` reproduced RED (selected expected
+True, observed False) before the fix and passed four native cases afterward:
+selected, unrelated machine pending restart, unchecked and transaction restart.
+Both sequence tables are emptied before opening each randomized package; only
+costing and the final dialog are invoked. No installed product, real application,
+shortcut, certificate or trust entry is changed. The desktop-specific fixture
+uses a bounded own subprocess and is not invoked by default verification/CI.
+
+Fresh `./verify.ps1 -Integration` exited 0, and independent review found no
+Critical/Important issue. The exact committed consumer is checked separately
+after commit. Two minor fixture hardening items remain deferred: waiting for
+complete marker contents rather than file existence, and parent-owned cleanup
+when a timeout forcibly terminates the worker. Normal fixture runs clean up their
+owned directory. The inspected fixtures and successful runs do not establish
+elevated installed launch privileges. Start-menu right-click Uninstall remains a
+separate reproduced installed failure; no speculative registration change was made.

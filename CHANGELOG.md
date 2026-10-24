@@ -7,6 +7,8 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ### Fixed
 
+- The MSI Finish-page Launch checkbox now runs the application; its native
+  file-key argument also supports installation paths containing spaces.
 - MSI wizard text uses concise, conventional installation wording throughout,
   including completion, cancellation and the optional Launch checkbox.
 - Fixed-folder MSI installs skip the redundant Options page; progress appears
@@ -17,6 +19,11 @@ All notable changes to winbuildtools are listed here. The format is based on
   frame; inspection verifies the derived resource ([UI contract](msi/README.md#native-setup-and-maintenance)).
 - Welcome no longer asks users to close an application that may not be running;
   native files-in-use detection requests closure only when needed.
+
+### Known limitations
+
+- Installed consumer acceptance still lacks Start-menu right-click Uninstall
+  despite shortcut metadata; shell catalog integration remains under investigation.
 
 ## [0.5.0-beta.1] - 2026-10-24
 
