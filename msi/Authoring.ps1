@@ -4,8 +4,8 @@
 .SYNOPSIS
 Author a native MSI database with one embedded cabinet and standard actions.
 .DESCRIPTION
-Requires Configuration, Identity, Payload, Database, Registration, Maintenance,
-Scope and Wizard helpers. New-MsiPackage
+Requires Configuration, Identity, Branding, Payload, Database, Registration,
+Maintenance, Scope, Presentation and Wizard helpers. New-MsiPackage
 writes the requested MSI plus a retained msi-authoring-* work directory; it does
 not inspect the completed artifact. The public package.ps1 performs that gate.
 #>
@@ -51,6 +51,7 @@ function New-MsiPackage {
    CreateFolder='`Directory_` CHAR(72) NOT NULL, `Component_` CHAR(72) NOT NULL PRIMARY KEY `Directory_`, `Component_`'
    RemoveFile='`FileKey` CHAR(72) NOT NULL, `Component_` CHAR(72) NOT NULL, `FileName` CHAR(255) LOCALIZABLE, `DirProperty` CHAR(72) NOT NULL, `InstallMode` SHORT NOT NULL PRIMARY KEY `FileKey`'
    Icon='`Name` CHAR(72) NOT NULL, `Data` OBJECT NOT NULL PRIMARY KEY `Name`'
+   Binary='`Name` CHAR(72) NOT NULL, `Data` OBJECT NOT NULL PRIMARY KEY `Name`'
    MsiFileHash='`File_` CHAR(72) NOT NULL, `Options` SHORT NOT NULL, `HashPart1` LONG NOT NULL, `HashPart2` LONG NOT NULL, `HashPart3` LONG NOT NULL, `HashPart4` LONG NOT NULL PRIMARY KEY `File_`'
    InstallExecuteSequence='`Action` CHAR(72) NOT NULL, `Condition` CHAR(255), `Sequence` SHORT PRIMARY KEY `Action`'
    InstallUISequence='`Action` CHAR(72) NOT NULL, `Condition` CHAR(255), `Sequence` SHORT PRIMARY KEY `Action`'
@@ -73,6 +74,7 @@ function New-MsiPackage {
   Add-MsiScopeUi $installer $database $Configuration $Architecture
   Add-MsiRegistration $installer $database $Configuration $Architecture $files
   Add-MsiWizardUi $installer $database $Configuration $Architecture
+  Add-MsiBranding $installer $database $Configuration $Folder
   # V1 adds architecture suffixes. V2 uses exact independent consumer segments;
   # the consumer must prevent overlapping files across independent products.
   $directoryName=$Configuration.installation.directoryName+' ('+$Architecture.ToLowerInvariant()+')'

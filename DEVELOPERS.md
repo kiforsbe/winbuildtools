@@ -110,3 +110,12 @@ property setters or weaken semantic comparison to accommodate a new table.
 install session. The separately opted-in `msi/tests/acceptance.ps1 -RunLifecycle
 -DisposableHost` performs real synthetic servicing only on an isolated host;
 it is never invoked by verification or CI. See [acceptance](docs/MSI-ACCEPTANCE.md).
+
+Unreleased presentation support adds `Branding.ps1` before Payload and
+`Presentation.ps1` before Wizard to the standalone loader. Both JSON schemas
+accept the [same `ui` contract](msi/README.md#native-setup-and-maintenance), with a
+complete [example](msi/example-ui.json). Binary resource names and bytes must be
+inspected before costing; do not generalize this into executable resource loading.
+Native launch is opt-in, unchecked and bound only to the application's File key.
+Do not introduce launch commands/arguments, launch in unattended UI or conflate
+that action with Restart Manager's automatic relaunch (which remains disabled).

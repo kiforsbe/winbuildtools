@@ -26,6 +26,15 @@ selection can differ from a live session. This proves rendering only, not Back,
 keyboard focus, consent, cancellation, progress ticks, UAC or reboot conditions.
 The preview is cleared before COM release to avoid native preview shutdown hangs.
 
+Unreleased presentation support adds `WbtBrowse` (when browsing is enabled) and
+`WbtInstallDetails` (when details are enabled). Preview can display both configured
+layouts and image resources. Some native properties, including a host's pending
+restart, can affect the preview. Explicit `-Properties @{MsiSystemRebootPending='';
+ReplacedInUseFiles='';UILevel='5'}` selects the ordinary success example; this is
+display data only, not evidence of reboot or launch behavior. Native inactive
+edit/list controls may display no value/content even when the preview property is
+set. Validate actual browsing/editing on the disposable host, not from that capture.
+
 ## Prepare a synthetic acceptance kit
 
 This default command is non-installing and may be run on a development host:
@@ -81,6 +90,9 @@ and the actual older release for upgrade compatibility.
 | Running app | Visible/tray, graceful/disabled policy, refusal/non-response; data saved; bounded shutdown, no force kill or relaunch; correct fallback/reboot result |
 | Accessibility | Keyboard-only Tab/Shift-Tab/Enter/Escape, accelerators, screen reader, contrast themes, 100/150/200% DPI and text scaling; no clipping at supported settings |
 | Completion/reboot | Correct outcome, useful log location, no automatic launch/reboot; return code/log remains authoritative if restart hint is absent |
+| Branding/layouts | Both `brandedSidebar` and `compactHeader`; PNG/ICO logo clarity, sidebar aspect ratio, long product names and custom literal messages under DPI/contrast changes |
+| Browse/details | Browse Up/typed/existing folders, invalid paths, OK validation, Cancel preserves destination; no pre-confirmation folder creation; Details fields copy full paths/logs |
+| Optional launch/links | Unchecked launch stays off; checked launch runs only configured app after install/update, with correct Windows identity/permissions; never launch during repair/removal/restart-pending or unattended UI; verify explicit HTTPS help clicks |
 | Validation/architecture | Standard ICE validation including ICE105 on user/choice; native x64 and native ARM64 lifecycle, not merely foreign table inspection |
 
 Do not mark a case passed from a screenshot or a table assertion. Shell policy and

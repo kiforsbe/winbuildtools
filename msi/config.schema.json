@@ -155,6 +155,89 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 4096
+        },
+        "layout": {
+          "type": "string",
+          "enum": [
+            "brandedSidebar",
+            "compactHeader"
+          ]
+        },
+        "logo": {
+          "minLength": 1,
+          "maxLength": 240,
+          "type": "string"
+        },
+        "sidebarImage": {
+          "minLength": 1,
+          "maxLength": 240,
+          "type": "string"
+        },
+        "showBrowseButton": {
+          "type": "boolean"
+        },
+        "completion": {
+          "additionalProperties": false,
+          "properties": {
+            "launchApplication": {
+              "type": "boolean"
+            },
+            "showDetails": {
+              "type": "boolean"
+            },
+            "helpUrl": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "releaseNotesUrl": {
+              "minLength": 1,
+              "maxLength": 1024,
+              "type": "string"
+            },
+            "messages": {
+              "additionalProperties": false,
+              "properties": {
+                "repaired": {
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                "failed": {
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                "removed": {
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                "updated": {
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                "restartRequired": {
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                "canceled": {
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "type": "string"
+                },
+                "installed": {
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
         }
       }
     }

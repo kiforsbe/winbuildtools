@@ -112,9 +112,9 @@ ownership and cleanup.
 
 ## MSI pipeline
 
-[package.ps1](msi/package.ps1) loads `Configuration`, `Identity`, `Payload`,
-`Database`, `Registration`, `Maintenance`, `Scope`, `Wizard`, `Semantics`,
-`Authoring` and `Inspection` in that order. It validates inputs before
+[package.ps1](msi/package.ps1) loads `Configuration`, `Identity`, `Branding`, `Payload`,
+`Database`, `Registration`, `Maintenance`, `Scope`, `Presentation`, `Wizard`,
+`Semantics`, `Authoring` and `Inspection` in that order. It validates inputs before
 creating output, authors the MSI, checks its contents and only then writes
 `inspection.json` and returns the artifact/hash/result object.
 
@@ -144,7 +144,9 @@ creating output, authors the MSI, checks its contents and only then writes
    from owning the same files. Advertised shortcuts target the `Main` feature.
    Folder ownership/cleanup is limited to owned empty directories. Upgrade removal
    runs after InstallInitialize so it participates in the install transaction.
-   There are no executable/script custom actions or application launch/termination hooks.
+   There are no executable/script custom actions or application termination hooks.
+   An explicit consumer option can offer a native success-page app-launch checkbox;
+   the unchecked default and event condition prevent unattended launches.
    [Maintenance.ps1](msi/Maintenance.ps1) authors standard reserved files-in-use
    dialogs and native consent events. Restart Manager requests normal shutdown
    of file-using applications; it does not force termination or automatically
@@ -189,6 +191,26 @@ migration is never inferred. `INSTALLFOLDER` and `WBTACCEPTLICENSE` are secure
 client/server properties. Full semantic checks cover every allowed action,
 registry/search/shortcut row and UI table before engine entry. Consumer plain-text
 license data is escaped to RTF, with no executable objects or consumer RTF code.
+
+[Branding.ps1](msi/Branding.ps1) defines the two fixed optional Binary resources,
+validates consumer-approved payload images before output creation and compares
+their names and bounded SHA-256 bytes before native preflight. Image decoding uses
+installed System.Drawing on Windows; it accepts no executable/DLL resource streams.
+Images remain ordinary approved payload files/components as well as embedded UI
+resources. `msi/` still has no external helper/package dependency.
+
+[Presentation.ps1](msi/Presentation.ps1) applies both schema versions' presentation
+options to the core model: compact headers or branded welcome/result sidebars,
+logo controls, a native pre-cost Browse dialog, a read-only Details dialog and
+operation-specific result headings/messages. Browse commits only a validated
+temporary path and has no pre-install directory-creation action. Full-UI success
+launch uses one native `MsiLaunchApp` event for the configured executable File key,
+with no command/argument extension point. Repair/removal/restart-pending/silent
+paths cannot satisfy it. Consumer HTTPS links are HTML-escaped and opened only by
+native Hyperlink controls. Messages escape MSI brackets and preserve ampersands.
+Scope retains its own exact model, applying the shared header logo separately.
+Wizard inspection compares the complete composed model; it permits no arbitrary
+extra control event. Actual navigation/launch identity remains installed acceptance.
 
 For the native host architecture only, inspection also runs an explicit allowlist
 of search/costing/validation actions against a disposable MSI copy. That copy has

@@ -10,7 +10,7 @@ installing an MSI. Assertions fail immediately and cleanup validates its target.
 #>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
-if(Test-Path "$engine/Configuration.ps1") { . "$engine/Configuration.ps1"; . "$engine/Identity.ps1"; . "$engine/Payload.ps1" }
+if(Test-Path "$engine/Configuration.ps1") { . "$engine/Configuration.ps1"; . "$engine/Identity.ps1"; . "$engine/Branding.ps1"; . "$engine/Payload.ps1" }
 if(!(Get-Command Read-MsiConfiguration -ErrorAction SilentlyContinue)) { throw 'Missing configuration validation.' }
 $script:checks=0
 function Check([bool]$Value,[string]$Message) { if(!$Value) { throw $Message }; $script:checks++ }
@@ -107,14 +107,37 @@ try {
  $presentation=$v2json | ConvertFrom-Json -AsHashtable
  $presentation.ui=@{allowDirectoryChange=$true;licenseText='Example terms: {literal} \ Unicode å'}
  $presentation.application.appUserModelId='Example.App'
+ $presentation.ui.layout='brandedSidebar'
+ $presentation.ui.logo='Assets/Example.ico'
+ $presentation.ui.sidebarImage='Assets/sidebar.png'
+ $presentation.ui.showBrowseButton=$true
+ $presentation.ui.completion=@{launchApplication=$true;showDetails=$true;releaseNotesUrl='https://example.com/notes?a=1&b=2';helpUrl='https://example.com/help';messages=@{installed='Ready to use.';updated='Updated.';repaired='Repaired.';removed='Removed.';canceled='Canceled.';failed='Failed.';restartRequired='Restart Windows.'}}
  $presentation | ConvertTo-Json -Depth 10 | Set-Content $path
  $validatedPresentation=Read-MsiConfiguration $path
  Check ($validatedPresentation.ui.allowDirectoryChange -eq $true -and $validatedPresentation.application.appUserModelId -ceq 'Example.App') 'Optional presentation and application identity load.'
+ $v1presentation=$json | ConvertFrom-Json -AsHashtable
+ $v1presentation.ui=$presentation.ui | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
+ $v1presentation.ui.layout='compactHeader';$v1presentation.ui.Remove('sidebarImage') | Out-Null
+ $v1presentation | ConvertTo-Json -Depth 10 | Set-Content $path
+ Check ((Read-MsiConfiguration $path).ui.layout -ceq 'compactHeader') 'V1 accepts the same bounded presentation options.'
  foreach($change in @(
   {param($x) $x.ui.allowDirectoryChange='yes'},
   {param($x) $x.ui.licenseText=''},
   {param($x) $x.ui.extra='unknown'},
-  {param($x) $x.application.appUserModelId='invalid id with spaces'}
+  {param($x) $x.application.appUserModelId='invalid id with spaces'},
+  {param($x) $x.ui.layout='web'},
+  {param($x) $x.ui.logo='../logo.png'},
+  {param($x) $x.ui.logo='Assets/logo.exe'},
+  {param($x) $x.ui.layout='compactHeader'},
+  {param($x) $x.ui.allowDirectoryChange=$false},
+  {param($x) $x.ui.completion.launchApplication='yes'},
+  {param($x) $x.ui.completion.command='cmd.exe'},
+  {param($x) $x.ui.completion.helpUrl='file:///C:/Windows/notepad.exe'},
+  {param($x) $x.ui.completion.helpUrl='https://user:password@example.com/help'},
+  {param($x) $x.ui.completion.helpUrl='https://example.com/[ProductCode]'},
+  {param($x) $x.ui.completion.messages.installed="Bad`nmessage"},
+  {param($x) $x.ui.completion.messages.installed=('a'*161)},
+  {param($x) $x.ui.completion.messages.unknown='Ignored'}
  )) {
   $bad=$presentation | ConvertTo-Json -Depth 10 | ConvertFrom-Json -AsHashtable
   & $change $bad

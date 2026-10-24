@@ -44,6 +44,21 @@ fresh-identity fixtures; its real lifecycle requires both `-RunLifecycle` and
 Windows installation. It is excluded from ordinary verification. See
 [acceptance boundaries](docs/MSI-ACCEPTANCE.md).
 
+Presentation images are explicit approved payload files, limited to 8 MiB and
+2048×2048 pixels and decoded with installed Windows System.Drawing before authoring.
+The two fixed Binary names and exact image hashes are checked before preflight.
+This does not permit executable custom-action resources. Links accept only literal
+HTTPS URLs without credentials or MSI property references and are HTML-escaped.
+Completion messages are plain text with literal brackets/ampersands, not commands.
+
+When explicitly enabled by the consumer, a full-UI successful install/update can
+offer an initially unchecked Run checkbox. Its native `MsiLaunchApp` event targets
+only the configured executable's installed File key and accepts no arguments.
+The event excludes repair/removal, reduced/basic/silent UI and detected restart
+requirements. No application or URL is opened during verification or inactive
+preview. Validate actual launch identity/privilege on a disposable host, especially
+when setup itself was started elevated; no unelevated-launch guarantee is claimed.
+
 ## Certificates and signatures
 
 Build/pack commands never create keys or change trust. Signing selects exactly

@@ -7,7 +7,8 @@ New-install choices and navigation complete before discovery/costing. Only the
 final Ready button returns to the engine sequence. Existing-install servicing is
 routed after costing; it never offers scope/path changes. Modeless progress uses
 real MSI events. Cancel asks the engine to exit/roll back, never kills a process.
-This module authors no installation transaction, executable action or app launch.
+This module authors no installation transaction or executable custom action.
+Presentation adds only an explicitly enabled native launch choice on success.
 #>
 function Get-MsiWizardColumns {
  @{
@@ -222,6 +223,7 @@ function Get-MsiWizardDefinition($Configuration,[string]$Architecture) {
   @('RemoveExistingProducts','Removing the previous application version',' '),
   @('Rollback','Undoing changes made by this operation',' ')
  )) { Row ActionText $entry }
+ Update-MsiPresentationModel $model $Configuration $Architecture
  return $model
 }
 function Add-MsiWizardUi($Installer,$Database,$Configuration,[string]$Architecture) {

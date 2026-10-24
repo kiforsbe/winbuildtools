@@ -8,7 +8,7 @@ No installation transaction, shortcut launch, trust import or application runs.
 #>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
-foreach($name in @('Configuration','Identity','Payload','Database','Registration','Maintenance','Scope','Wizard','Semantics','Authoring','Inspection')) { if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" } }
+foreach($name in @('Configuration','Identity','Branding','Payload','Database','Registration','Maintenance','Scope','Presentation','Wizard','Semantics','Authoring','Inspection')) { if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" } }
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('WbtWizard-'+[guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path "$fixture/payload/Assets" -Force
 $script:checks=0
@@ -74,7 +74,7 @@ try {
  $presentation=Read-MsiPackage "$fixture/presentation.msi"
  Check (@($presentation.SemanticTables.MsiShortcutProperty | Where-Object { $_.PropertyKey -ceq 'System.AppUserModel.ID' -and $_.PropVariantValue -ceq 'Example.NativeInstaller' }).Count -eq 1) 'Optional app identity is consumer-owned and authored exactly.'
  $ui=Read-MsiMaintenanceUi "$fixture/presentation.msi"
- Check (@($ui.Controls | Where-Object { $_.Dialog_ -ceq 'WbtOptions' -and $_.Control -ceq 'Path' -and $_.Type -ceq 'Edit' }).Count -eq 1) 'Editable destination is opt-in.'
+ Check (@($ui.Controls | Where-Object { $_.Dialog_ -ceq 'WbtOptions' -and $_.Control -ceq 'Path' -and $_.Type -ceq 'PathEdit' }).Count -eq 1) 'Editable destination is opt-in and uses native path validation.'
  Check (@($ui.Controls | Where-Object { $_.Dialog_ -ceq 'WbtLicense' -and $_.Type -ceq 'ScrollableText' -and $_.Text -match '\\u229\?' -and $_.Text.Contains('\{plain\}') }).Count -eq 1) 'Plain license text must be escaped for native Unicode RTF.'
  $definition=Get-MsiWizardDefinition $presented x64
  Check (@($definition.ControlCondition.Rows | Where-Object { $_[0] -ceq 'WbtLicense' -and $_[2] -ceq 'Disable' -and $_[3] -ceq 'NOT (WBTACCEPTLICENSE = 1)' }).Count -eq 1) 'Only explicit acceptance enables Next.'

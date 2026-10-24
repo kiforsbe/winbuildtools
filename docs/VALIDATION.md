@@ -324,3 +324,55 @@ links. The recursive consumer used beta commit
 an additional consumer check before publication. `git diff --check` passed.
 GitHub Actions was not dispatched. Publication creates an annotated `v0.4.0` tag
 and a stable GitHub release; it includes no synthetic fixture/platform assets.
+## Configurable native MSI presentation — 2026-10-24
+
+The owner selected both proposed layouts and all suggested conveniences as schema
+options. Both schemas now accept the strict `ui` contract in the MSI guide and
+`example-ui.json`; no consumer repo/pin or release tag was changed.
+
+Observed test-first cases: the complete presentation configuration failed schema
+validation before the fields existed; native packages failed for missing Binary
+resources before authoring support; review's literal-ampersand check failed before
+NoPrefix text handling. Those cases passed after implementation. The first native
+mutation fixture attempted MSI primary-key UPDATE, which is unsupported; it now
+replaces the row while preserving all other fields, so the negative cases test
+real changed launch/link/resource data rather than a fixture SQL error.
+
+Targeted checks passed: configuration 68; existing wizard/registration 433;
+presentation 969 before adding three additional image-format decode checks.
+Coverage includes both schemas/layouts/architectures, exact logo bytes, native
+Browse/Details, per-operation finish controls, literal text/HTTPS links, four
+copied-MSI mutation cases, opt-outs, malformed/oversize/dimension/format image
+rejection and native evaluation of ten launch-gate scenarios. That condition
+matrix uses a fresh-identity/RM-disabled preflight copy, in-memory properties and
+EvaluateCondition only, with no DoAction, navigation or launch.
+
+Inactive native preview rendered eight pages for each layout (sixteen renders):
+welcome, scope, options, Browse, Ready, completion, Details and failure. PNG captures
+remain under ignored `artifacts/presentation-preview-*`. The first completion
+capture reflected a host pending-restart property; explicit empty preview restart
+properties then displayed the normal success/unchecked launch/links. Native edit/
+list preview fields remain inactive and can be blank even when property readback
+matches; this is rendering evidence, not proof of actual browsing or data entry.
+
+A fresh whole-change read-only review found the missing NoPrefix flag for literal
+ampersands; regression RED/GREEN and corrected native text authoring address it.
+No further substantive issue was confirmed. Full suite/provenance/committed
+consumer results are recorded below when complete. No third-party code/asset or
+package/runtime dependency was added. No product/app/trust mutation occurred.
+
+Still unverified: installed navigation, Browse OK/Cancel behavior, hyperlink
+navigation, app launch identity/privileges, UAC/managed elevation, restart handling,
+ICE, accessibility/scaling/high contrast, native ARM64 execution and servicing.
+No disposable VM is available. Follow the expanded acceptance matrix before
+shipping a rebuilt consumer package. There is no unelevated-launch guarantee.
+
+Full working-tree `./verify.ps1 -Integration` exited 0: configuration 68, v1 157,
+v2 151, wizard/registration 433 and presentation 972. The final presentation suite
+also decoded PNG/JPEG/BMP/ICO fixtures successfully. All common/MSIX/signing/
+certificate/.NET/repository checks and 129 local document links passed. The
+intentional missing-assets .NET negative fixture failed as expected before the
+locked restore/build/publish/execution passed. The fresh recursive consumer used
+baseline `9d5729f6e6d3f7563d57494f968fef1a67f65a59`; exact committed-candidate
+consumer verification follows below. `git diff --check` passed. No application,
+product or trust entry was started/installed/removed/changed by these checks.

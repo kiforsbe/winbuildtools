@@ -4,7 +4,7 @@
 .SYNOPSIS
 Enumerate and approve a bounded payload for single-cabinet MSI authoring.
 .DESCRIPTION
-Requires Configuration.ps1 and Identity.ps1. Returns Id, Component, Relative,
+Requires Configuration.ps1, Identity.ps1 and Branding.ps1. Returns Id, Component, Relative,
 FullName, Name and Length records after validating the entire file set. It does
 not build or run the application, or decide whether approved content is safe.
 #>
@@ -39,9 +39,10 @@ function Get-MsiPayload($Configuration,[string]$Folder,[ValidateSet('x64','ARM64
     }
     # The executable/icon are implicitly required, even if omitted from the
     # explicit list. Validate everything before emitting any pipeline records.
-    foreach($required in @($Configuration.payload.requiredFiles)+@($Configuration.application.executable)+@($Configuration.application.icon)) {
+    foreach($required in @($Configuration.payload.requiredFiles)+@($Configuration.application.executable)+@($Configuration.application.icon)+@($Configuration.ui.logo,$Configuration.ui.sidebarImage)) {
         if($required -and !$seen.Contains($required.Replace('\','/'))) { throw "Payload missing required file: $required" }
     }
+    Assert-MsiBrandingAssets $Configuration $Folder
     if($Configuration.schemaVersion -eq 2) {
         if($Configuration.components.Count -ne $seen.Count -or @($seen | Where-Object { !$Configuration.components.ContainsKey($_) }).Count) { throw 'Component map must cover exactly the approved payload paths.' }
     }

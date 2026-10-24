@@ -65,6 +65,10 @@ progress, result/log pages and Start-shortcut uninstall metadata. Both schemas
 accept optional destination editing/license text and an existing application
 identity. See [native setup](msi/README.md#native-setup-and-maintenance) and the
 [non-installing preview / disposable acceptance guide](docs/MSI-ACCEPTANCE.md).
+Unreleased schema options additionally support both branded-sidebar and compact
+layouts, logo/artwork, native folder browsing and configurable finish actions;
+see the complete [UI example](msi/example-ui.json). These require a future deliberate
+tool pin update; the published `v0.4.0` tag is unchanged.
 V1 and v2 graceful MSI maintenance use Windows Installer's Restart Manager to request normal
 application shutdown, with no automatic relaunch. Interactive UI asks for consent;
 silent deployment can request shutdown without prompting. Applications must handle

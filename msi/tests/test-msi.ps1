@@ -10,7 +10,7 @@ Native costing runs only for the host architecture; lifecycle/ICE tests are sepa
 #>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
-foreach($name in @('Configuration','Identity','Payload','Database','Registration','Maintenance','Scope','Wizard','Semantics','Authoring','Inspection')) {
+foreach($name in @('Configuration','Identity','Branding','Payload','Database','Registration','Maintenance','Scope','Presentation','Wizard','Semantics','Authoring','Inspection')) {
  if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" }
 }
 if(!(Get-Command New-MsiPackage -ErrorAction SilentlyContinue)) { throw 'Missing native MSI authoring.' }

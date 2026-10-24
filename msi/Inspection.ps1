@@ -4,8 +4,8 @@
 .SYNOPSIS
 Read MSI metadata, compare embedded payloads and run isolated costing preflight.
 .DESCRIPTION
-Requires Configuration, Identity, Payload, Database, Registration, Maintenance,
-Scope, Wizard and Semantics. Inspection never
+Requires Configuration, Identity, Branding, Payload, Database, Registration,
+Maintenance, Scope, Presentation, Wizard and Semantics. Inspection never
 performs an install transaction. Returned table snapshots are plain objects;
 COM/native handles are released before returning to the caller.
 #>
@@ -161,6 +161,7 @@ function Assert-MsiPreflight([string]$Path,[ValidateSet('user','machine')][strin
 # cannot establish that the embedded cabinet contains the expected application.
 function Assert-MsiContents([string]$Path,[string]$Folder,$Configuration,[string]$Version,[string]$Architecture,[string]$InspectionFolder) {
  $expected=@(Get-MsiPayload $Configuration $Folder $Architecture);$actual=Read-MsiPackage $Path
+ Assert-MsiBrandingPolicy $Path $Configuration $Folder
  Assert-MsiMaintenancePolicy $Path $actual.Properties $Configuration
  Assert-MsiScopePolicy $Path $actual $Configuration $Architecture
  Assert-MsiWizardPolicy $Path $Configuration $Architecture

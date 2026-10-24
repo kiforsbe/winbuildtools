@@ -8,7 +8,7 @@ Both processor tables are inspected; only the native processor runs costing.
 #>
 $ErrorActionPreference='Stop'
 $engine=Split-Path $PSScriptRoot -Parent
-foreach($name in @('Configuration','Identity','Payload','Database','Registration','Maintenance','Scope','Wizard','Semantics','Authoring','Inspection')) { if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" } }
+foreach($name in @('Configuration','Identity','Branding','Payload','Database','Registration','Maintenance','Scope','Presentation','Wizard','Semantics','Authoring','Inspection')) { if(Test-Path "$engine/$name.ps1") { . "$engine/$name.ps1" } }
 $fixture=Join-Path ([IO.Path]::GetTempPath()) ('WbtV2-'+[guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path "$fixture/payload/Assets" -Force
 $script:checks=0

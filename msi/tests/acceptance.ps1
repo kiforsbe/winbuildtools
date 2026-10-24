@@ -30,7 +30,7 @@ $ErrorActionPreference='Stop'
 if($RunLifecycle -and !$DisposableHost) { throw 'Running lifecycle requires explicit -DisposableHost on an isolated disposable Windows installation.' }
 if(!$IsWindows) { throw 'Windows is required.' }
 $engine=Split-Path $PSScriptRoot -Parent
-foreach($name in @('Configuration','Identity','Payload','Database','Registration','Maintenance','Scope','Wizard','Semantics','Authoring','Inspection')) { . "$engine/$name.ps1" }
+foreach($name in @('Configuration','Identity','Branding','Payload','Database','Registration','Maintenance','Scope','Presentation','Wizard','Semantics','Authoring','Inspection')) { . "$engine/$name.ps1" }
 $output=Resolve-MsiPath $OutputDirectory
 if(Test-Path -LiteralPath $output) { throw 'OutputDirectory must be new.' }
 $null=New-Item -ItemType Directory -Path "$output/payload" -Force

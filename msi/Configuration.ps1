@@ -79,5 +79,27 @@ function Read-MsiConfiguration([string]$Path) {
     foreach($value in @($config.product.name,$config.product.manufacturer)) {
         if($value.Length -gt 64 -or $value -match '[\x00-\x1f]') { throw 'Product display fields must contain 1..64 printable characters.' }
     }
+    $ui=if($config.ui) {$config.ui}else{@{}}
+    $completion=if($ui.completion) {$ui.completion}else{@{}}
+    foreach($name in @('logo','sidebarImage')) {
+        $asset=$ui[$name]
+        if(!$asset) { continue }
+        Assert-MsiRelativePath $asset
+        $extensions=if($name -eq 'logo') {@('.ico','.png','.jpg','.jpeg','.bmp')}else{@('.png','.jpg','.jpeg','.bmp')}
+        if([IO.Path]::GetExtension($asset) -notin $extensions) { throw "Unsupported UI image format: $name." }
+    }
+    if($config.ui.sidebarImage -and $config.ui.layout -cne 'brandedSidebar') { throw 'sidebarImage requires layout brandedSidebar.' }
+    if($config.ui.showBrowseButton -and !$config.ui.allowDirectoryChange) { throw 'showBrowseButton requires allowDirectoryChange.' }
+    foreach($name in @('releaseNotesUrl','helpUrl')) {
+        $value=$completion[$name]
+        if(!$value) { continue }
+        $uri=$null
+        # Links are consumer data, never MSI property references, credentials or
+        # shell commands. The author separately escapes HTML attribute syntax.
+        if($value -match '[\x00-\x20\[\]"<>\\]' -or ![uri]::TryCreate($value,[UriKind]::Absolute,[ref]$uri) -or $uri.Scheme -cne 'https' -or !$uri.Host -or $uri.UserInfo) { throw "UI link must be a literal HTTPS URL without credentials: $name." }
+    }
+    foreach($value in $config.ui.completion.messages.Values) {
+        if([string]::IsNullOrWhiteSpace($value) -or $value -match '[\x00-\x1f]') { throw 'Completion messages must be printable plain text.' }
+    }
     return $config
 }

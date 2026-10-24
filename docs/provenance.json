@@ -7,21 +7,21 @@
   "Files": [
     {
       "Path": "msi/Authoring.ps1",
-      "SHA256": "2F4E7B6E4FE487BBCDABEA74B3D209DB71DD5FC943DB2F2776F3294C8EBE6215",
+      "SHA256": "EC491AEB87D7B0E0345819FB6B3D1D5507FA36BF1D65112BABB5205F2D1D72C8",
       "ExtractionSHA256": "99063A6EFFF689B918A9953BFC2A9283094BEFBA03C81FE51CFB8D65013B0593",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     },
     {
       "Path": "msi/config.schema.json",
-      "SHA256": "4D1FEBB90BB2B9D7FF0693C4F6D12CFF9DF57D4D40492E1BCD98DA1A39B4DC09",
+      "SHA256": "8EB7CB2490F84D80E1FC2FD8C7F2CDE0E596A8B35EC7442C876721A3252107FD",
       "ExtractionSHA256": "DF064A643AC054012E7496D8366939C3D4A390E8D973C7A5FC24D29AC12C7162",
-      "LocalModification": "2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     },
     {
       "Path": "msi/Configuration.ps1",
-      "SHA256": "275B940EB3566A825CECF94FFC47CA4E4F36A26303EAF180130DC42D56050EB3",
+      "SHA256": "ABF9324DE807CDF95A27C979F79A888F04BE1A20DE019B96A14C5404C37F6F40",
       "ExtractionSHA256": "E1E93E0914350065FC721A63B6F6FDD8D5B4BA0B48FCA78602BCB009419FB22D",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     },
     {
       "Path": "msi/Database.ps1",
@@ -41,33 +41,33 @@
     },
     {
       "Path": "msi/Inspection.ps1",
-      "SHA256": "349235E26BF9BE93CA8709C1EB123D9E97134803E17C53917587871CAA995AC1",
+      "SHA256": "26DD2EE58351A28826070AD70565DC396C9078BE92DFE27BBD70954DE26146EA",
       "ExtractionSHA256": "3745A15DDE16180A0A173B3AA5EC86BDBACC4AC800B6173684E27D2E89C48EB0",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     },
     {
       "Path": "msi/package.ps1",
-      "SHA256": "94F1D1E223A0A6572C8C943E288BFF3FEF6E13651B9076AC438B2D4A5D470C17",
+      "SHA256": "CC29FBB32CAD182567929BC8F2DCB1762108716E85030FFF85A26091113ABE02",
       "ExtractionSHA256": "495C9F31A7088C9AE4A3784101DA73B6EDEED187B19F56020283E71CF6F38ACB",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     },
     {
       "Path": "msi/Payload.ps1",
-      "SHA256": "F1CA40A53BB8529C599DD8621B7F1546A08BAFF17FDF86F29CD215E3ADB18F11",
+      "SHA256": "2815101E8D0034DECDE6D2561D721980E876B8818C9BAABAFDA308EF29CAAF77",
       "ExtractionSHA256": "A152A301764DEBF34202AD0C8AB2AED60E9916F29BEF50EF692419E210F807CD",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     },
     {
       "Path": "msi/tests/test-config.ps1",
-      "SHA256": "4097FF8843AD80F054568883337ECF911AAF5996EB035828CF8C66246EAF0292",
+      "SHA256": "40ECD4793E5200DD7CF2B1FEFA5C46D1E78162ACF03EED777FCB4B2E7B282F62",
       "ExtractionSHA256": "7D6299FD1C35072104B535A40E217A5C433E8A0C9E02DC412C194429EC899BD0",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     },
     {
       "Path": "msi/tests/test-msi.ps1",
-      "SHA256": "D85FD38EB72B6A9E547463E875757BF31C1D7D69EAC79B13442A10E10E6112CF",
+      "SHA256": "483E20900E0AD28FD0B599B4B443529D96F088CD5235B99C08F4977A9C382E50",
       "ExtractionSHA256": "05CF8587877227A626B97D0EA74704EF76F070D3C7ED79984C841EDD44C210B5",
-      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record."
+      "LocalModification": "2026-10-21: maintenance help/comments only; executable PowerShell tokens unchanged. 2026-10-22: Restart Manager maintenance policy/UI, isolated preflight or regression/loader changes; see msi/README.md and docs/VALIDATION.md. 2026-10-23: v2 literal identities/scope/semantics or compatible loader/regression changes; see MSI guide and validation record. 2026-10-23: native wizard/registration, folder-memory isolation, optional presentation and regression/help changes; see MSI guide and validation record. 2026-10-24: configurable native presentation/schema, bounded branding resources, exact inspection and loader/regression maintenance; see MSI guide and validation record."
     }
   ]
 }

@@ -25,7 +25,7 @@ foreach($file in Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File 
 }
 # Run in-process so thrown assertions abort the suite; helpers are dot-sourced by
 # each test as needed. Tests must keep mutations inside their owned temp fixtures.
-foreach($test in @('msi/tests/test-config.ps1','msi/tests/test-msi.ps1','msi/tests/test-v2.ps1','msi/tests/test-wizard.ps1','tests/test-common.ps1','tests/test-msix.ps1','tests/test-signing.ps1','tests/test-dotnet.ps1','tests/test-repository.ps1')) {
+foreach($test in @('msi/tests/test-config.ps1','msi/tests/test-msi.ps1','msi/tests/test-v2.ps1','msi/tests/test-wizard.ps1','msi/tests/test-presentation.ps1','tests/test-common.ps1','tests/test-msix.ps1','tests/test-signing.ps1','tests/test-dotnet.ps1','tests/test-repository.ps1')) {
     & (Join-Path $PSScriptRoot $test)
     if(!$?) { throw "Verification failed: $test" }
 }

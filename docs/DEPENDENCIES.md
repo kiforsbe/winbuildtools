@@ -97,3 +97,28 @@ platform advisory completeness or actual Start/lifecycle acceptance is claimed.
 - [Native preview](https://learn.microsoft.com/en-us/windows/win32/msi/previewing-the-user-interface)
 - [Secure property transfer](https://learn.microsoft.com/en-us/windows/win32/msi/securecustomproperties)
 - [EndDialog UI constraint](https://learn.microsoft.com/en-us/windows/win32/msi/enddialog-controlevent)
+
+## Configurable presentation review — 2026-10-24
+
+No package/runtime/tool version was selected, installed or upgraded. There is no
+new package transitive dependency tree or redistributed binary. Image validation
+uses the System.Drawing assembly already supplied with the installed PowerShell 7
+runtime on Windows; this is Windows-only. Native MSI Binary/Bitmap/Icon/PathEdit/
+DirectoryList/Hyperlink controls and MsiLaunchApp need no added installer library.
+The host owns platform servicing and its Windows/runtime license terms; the source
+MIT license does not relicense consumer artwork or platform components.
+
+Live authoritative Microsoft guidance was checked for image resource tables and
+formats, Browse property binding/validation, read-only Edit flags, native HTTPS
+links, plain Text NoPrefix and the exact installed-File launch event. WiX source
+was read as an API usage reference; no code/assets/dependency were copied from it.
+No advisory scan establishes complete platform or consumer security. Real launch
+privilege/identity, navigation and installed servicing remain acceptance checks.
+
+- [Bitmap formats](https://learn.microsoft.com/en-us/windows/win32/msi/bitmap-control)
+- [Icon resources](https://learn.microsoft.com/en-us/windows/win32/msi/icon-control)
+- [Browse path binding](https://learn.microsoft.com/en-us/windows/win32/msi/pathedit-control)
+- [Path validation](https://learn.microsoft.com/en-us/windows/win32/msi/checktargetpath-controlevent)
+- [Native hyperlinks](https://learn.microsoft.com/en-us/windows/win32/msi/hyperlink-control)
+- [Literal Text controls](https://learn.microsoft.com/en-us/windows/win32/msi/text-control)
+- [Native installed-file launch](https://learn.microsoft.com/en-us/windows/win32/msi/msilaunchapp-controlevent)

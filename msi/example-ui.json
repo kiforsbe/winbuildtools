@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 2,
+  "product": {
+    "id": "example-ui",
+    "name": "Example",
+    "manufacturer": "Example",
+    "upgradeCode": "{D17C1326-19D9-4B71-A51D-EF33B9675C66}",
+    "productCode": "{20000000-0000-4000-8000-000000000001}"
+  },
+  "installation": {
+    "scope": "choice",
+    "directoryName": "Example",
+    "minimumWindowsBuild": 22000,
+    "defaultScope": "user",
+    "menuDirectoryName": "Example",
+    "restartManager": "disabled"
+  },
+  "application": {
+    "appUserModelId": "Example.Ui",
+    "executable": "Example.exe"
+  },
+  "shortcuts": [
+    {
+      "name": "Example",
+      "location": "startMenu"
+    }
+  ],
+  "payload": {
+    "allowedExtensions": [
+      ".exe",
+      ".png"
+    ],
+    "allowedFiles": [],
+    "requiredFiles": [
+      "Example.exe",
+      "Assets/logo.png",
+      "Assets/setup-sidebar.png"
+    ]
+  },
+  "architecture": "x64",
+  "components": {
+    "Assets/logo.png": "{20000000-0000-4000-8000-000000000003}",
+    "Example.exe": "{20000000-0000-4000-8000-000000000002}",
+    "Assets/setup-sidebar.png": "{20000000-0000-4000-8000-000000000004}"
+  },
+  "ui": {
+    "completion": {
+      "messages": {
+        "installed": "Example is ready to use.",
+        "removed": "Example has been removed.",
+        "restartRequired": "Windows may require a restart. Check the setup log.",
+        "updated": "The new version is ready.",
+        "failed": "Setup failed. Review the log before retrying.",
+        "canceled": "Setup was canceled. Review the log if needed.",
+        "repaired": "Application files have been restored."
+      },
+      "showDetails": true,
+      "releaseNotesUrl": "https://example.com/releases",
+      "launchApplication": true,
+      "helpUrl": "https://example.com/getting-started"
+    },
+    "showBrowseButton": true,
+    "logo": "Assets/logo.png",
+    "layout": "brandedSidebar",
+    "allowDirectoryChange": true,
+    "sidebarImage": "Assets/setup-sidebar.png"
+  }
+}

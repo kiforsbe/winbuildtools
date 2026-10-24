@@ -12,6 +12,7 @@ third-party PowerShell module or repository checkout is needed by the engine.
 ./tests/test-msi.ps1
 ./tests/test-v2.ps1
 ./tests/test-wizard.ps1
+./tests/test-presentation.ps1
 ```
 
 The output directory must be new and outside the payload. The command returns
@@ -134,7 +135,7 @@ The installer uses native Program Files, an advertised Start-menu shortcut and
 standard Windows Installer actions. Restart Manager requests normal shutdown of
 applications using affected files; see [Running applications](#running-applications).
 Older MSI versions are removed transactionally, same/newer versions are detected,
-and installed products retain MSI maintenance. There is no application launch,
+and installed products retain MSI maintenance. There is no automatic application launch,
 force-termination custom action, certificate trust import, executable custom-action code or user-data
 deletion. Uninstall owns only application files and empty app/menu directories.
 The engine appends the architecture to installation.directoryName for the app
@@ -193,10 +194,70 @@ Both schemas accept these optional presentation fields:
 
 ```json
 "ui": {
+  "layout": "brandedSidebar",
+  "logo": "Assets/logo.png",
+  "sidebarImage": "Assets/setup-sidebar.png",
   "allowDirectoryChange": true,
-  "licenseText": "Your application's plain-text license agreement."
+  "showBrowseButton": true,
+  "completion": {
+    "launchApplication": true,
+    "showDetails": true,
+    "releaseNotesUrl": "https://example.com/releases",
+    "helpUrl": "https://example.com/getting-started",
+    "messages": {
+      "installed": "The application is ready to use.",
+      "updated": "The new version is ready.",
+      "repaired": "Application files have been restored.",
+      "removed": "The application has been removed.",
+      "canceled": "Setup was canceled. Review the log if needed.",
+      "failed": "Setup failed. Review the log before retrying.",
+      "restartRequired": "Windows may require a restart. Check the setup log."
+    }
+  }
 }
 ```
+
+See [example-ui.json](example-ui.json) for a complete v2 configuration. The same
+`ui` object is accepted by v1. Omit options to retain defaults; unknown fields,
+contradictory options, unsafe paths/URLs and invalid images are rejected.
+
+| Field | Contract and default |
+| --- | --- |
+| `ui.layout` | `compactHeader` (default) or `brandedSidebar`; sidebar applies to welcome/result pages, with compact headers on intermediate pages |
+| `ui.logo` | Optional payload-relative ICO/PNG/JPEG/BMP; small header logo and larger sidebar logo when no full sidebar image is supplied |
+| `ui.sidebarImage` | Optional PNG/JPEG/BMP artwork; requires explicit `brandedSidebar`; includes its own logo/lettering and fills the sidebar without text overlays |
+| `ui.showBrowseButton` | Defaults to true when directory editing is enabled; explicit true requires `allowDirectoryChange=true`; false retains direct text editing |
+| `ui.completion.launchApplication` | Default false; offers an initially unchecked Run checkbox after successful full-UI install/update |
+| `ui.completion.showDetails` | Default true; adds a modal Details button with selectable folder/log fields, version, architecture and context |
+| `ui.completion.releaseNotesUrl` / `helpUrl` | Optional literal HTTPS URLs, at most 1024 characters; no credentials, MSI property references or shell/file protocols |
+| `ui.completion.messages` | Optional plain-text body overrides for `installed`, `updated`, `repaired`, `removed`, `canceled`, `failed`, `restartRequired`; 1–160 printable characters each; headings remain tied to the actual operation |
+
+Images must already be approved payload files and are implicitly required when
+referenced. They are also installed as ordinary payload components, so v2 component
+maps must include them. Each image is limited to 8 MiB and 2048×2048 pixels, decoded
+before output creation; its actual format must match its extension. Use artwork
+with the intended aspect ratio: roughly 1:1 for logos and 120:242 for sidebar art.
+Images are embedded in the MSI's native Binary table; exact resource names and
+SHA-256 bytes are checked before any costing. No download or image package is used.
+
+Finish pages distinguish installation, update, repair and removal. Normal logs
+sit behind Details; cancellation/failure retain visible log information even when
+`showDetails=false`. Restart text is advisory, based on native pending-restart/
+in-use-file properties; it is not a substitute for the engine's exit code/log.
+Hyperlinks appear after successful install/update. Their destinations belong to
+the consumer and open in the default browser only when clicked.
+
+The Run checkbox never defaults to checked and is absent during repair, removal,
+failure/cancellation, reduced/basic/silent UI or a detected pending restart. Its
+native `MsiLaunchApp` event accepts only the configured executable's installed File
+key, with no command/argument fields. Actual launch identity/privilege behavior
+still needs disposable-host acceptance, especially when setup was started elevated.
+No launch or URL is followed during packaging, inspection, preview or verification.
+
+Browse uses native PathEdit/DirectoryList controls and a temporary path property.
+OK validates before committing; Cancel preserves the original destination. It
+offers no New folder action that could write directories before confirmation.
+Native costing remains responsible for the final destination validation.
 
 Destination editing defaults to false. A command-line `INSTALLFOLDER` is honored
 in full UI; Back preserves edits until scope is actually switched. The resolved
@@ -233,8 +294,8 @@ Agenda/ProcSight packages by itself.
 Automatic native logging is enabled with `MsiLogging=voicewarmupx`; result pages
 show `MsiLogFileLocation` when available. `/L*v path.log` gives deployments a
 known retained log. Conditional restart text is advisory: check engine exit codes
-(including 3010) and logs even when reboot prompts are suppressed. No app launches
-after completion. [Preview and acceptance](../docs/MSI-ACCEPTANCE.md) distinguishes
+(including 3010) and logs even when reboot prompts are suppressed. Optional launch
+requires the consumer setting and user checkbox above. [Preview and acceptance](../docs/MSI-ACCEPTANCE.md) distinguishes
 inactive native rendering from actual servicing acceptance.
 
 References: [shortcut properties](https://learn.microsoft.com/en-us/windows/win32/msi/msishortcutproperty-table),
@@ -327,6 +388,8 @@ See [Running applications](#running-applications) before changing maintenance po
 | Maintenance.ps1 | Reserved files-in-use dialogs, consent/cancel events and maintenance policy inspection |
 | Scope.ps1 | Native scope properties, chooser authoring and exact scope UI inspection |
 | Registration.ps1 | Bounded shortcut/ARP registration, context-owned folder memory and three exact type-51 setters |
+| Branding.ps1 | Approved image validation, native Binary streams and exact resource-byte inspection |
+| Presentation.ps1 | Both layouts, Browse/Details pages, operation-specific results and bounded native launch/links |
 | Wizard.ps1 | Declarative setup/servicing/progress/result pages and exact native UI inspection |
 | preview.ps1 | Read-only inactive native dialog preview/capture; requires `pwsh -STA` |
 | Semantics.ps1 | Complete expected table/summary comparisons before preflight/extraction |
@@ -351,7 +414,7 @@ after Set-Location. Payload approval and component identities normalize both sla
 styles. Paths in JSON remain relative to the payload, not relative to the config.
 
 When copying, include this entire directory including LICENSE/NOTICE and tests.
-Run all four test scripts in the destination and exercise a second product config
+Run all five test scripts in the destination and exercise a second product config
 using relative paths from a different directory. Keep publishing, signing, license
 review and dependency acquisition in consumer adapters. Do not add imports back
 into Agenda or application-specific filenames. A future shared release should be

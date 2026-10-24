@@ -5,6 +5,13 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- Both MSI schemas accept branded-sidebar/compact-header layouts, logo/artwork,
+  native folder browsing and configurable completion options ([UI contract](msi/README.md#native-setup-and-maintenance)).
+- Completion pages distinguish install/update/repair/removal and support optional
+  app launch, HTTPS help links and installation details through `ui.completion`.
+
 ## [0.4.0] - 2026-10-23
 
 ### Added

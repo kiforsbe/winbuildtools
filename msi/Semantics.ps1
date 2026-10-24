@@ -12,6 +12,7 @@ function Get-MsiSemanticColumns {
  @{
   Property=@('Property','Value')
   Icon=@('Name')
+  Binary=@('Name')
   Registry=@('Registry','Root','Key','Name','Value','Component_')
   CustomAction=@('Action','Type','Source','Target')
   MsiShortcutProperty=@('MsiShortcutProperty','Shortcut_','PropertyKey','PropVariantValue')
@@ -69,6 +70,7 @@ function Assert-MsiSemantics($Snapshot,$Configuration,[object[]]$Files,[string]$
  $iconName='App.exe'
  if($iconName) { $properties.ARPPRODUCTICON=$iconName; $rows.Icon.Add(@($iconName)) }
  $properties.WBTMAINTENANCE='repair'
+ foreach($spec in @(Get-MsiBrandingSpecs $Configuration)) { $rows.Binary.Add(@($spec.Name)) }
  foreach($entry in $properties.GetEnumerator()) { $rows.Property.Add(@($entry.Key,$entry.Value)) }
  foreach($entry in (Get-MsiRegistrationDefinition $Configuration $Architecture $Files).GetEnumerator()) { foreach($row in $entry.Value.Rows) { $rows[$entry.Key].Add($row) } }
  if($Snapshot.Codepage -ne 1252 -or $Snapshot.Title -cne ($product.name+' installer') -or $Snapshot.Subject -cne $product.name -or $Snapshot.Author -cne $product.manufacturer -or $Snapshot.PageCount -ne 500 -or $Snapshot.WordCount -ne $wordCount -or $Snapshot.CreatingApplication -cne 'Generic MSI packaging' -or $Snapshot.Template -cne $(if($Architecture -eq 'ARM64'){'Arm64;1033'}else{'x64;1033'})) { throw 'MSI summary metadata/privilege mismatch.' }

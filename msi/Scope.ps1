@@ -22,7 +22,7 @@ function Get-MsiScopeDefinition($Configuration,[string]$Architecture) {
  # additionally assert native property semantics and ordering independently.
  # Remember the last selected scope so Back preserves edited destinations unless
  # the user actually switches context. An initial command-line path is honored.
- @{
+ $model=@{
   Dialog=@{Columns=@('Dialog','HCentering','VCentering','Width','Height','Attributes','Title','Control_First','Control_Default','Control_Cancel');Rows=@(
    ,@('WbtScope',50,50,400,290,3,'[ProductName] Setup','ScopeChoice','Continue','Cancel'))}
   Control=@{Columns=@('Dialog_','Control','Type','X','Y','Width','Height','Attributes','Property','Text','Control_Next');Rows=@(
@@ -50,6 +50,8 @@ function Get-MsiScopeDefinition($Configuration,[string]$Architecture) {
    @('WbtScope','Cancel','SpawnDialog','WbtCancelConfirm','1',1))}
   InstallUISequence=@{Columns=@('Action','Condition','Sequence');Rows=@()}
  }
+ Add-MsiScopeBranding $model $Configuration
+ return $model
 }
 function Add-MsiScopeUi($Installer,$Database,$Configuration,[string]$Architecture) {
  if($Configuration.schemaVersion -ne 2 -or $Configuration.installation.scope -ne 'choice') { return }
