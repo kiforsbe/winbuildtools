@@ -438,3 +438,7 @@ Independent whole-change review found no Critical/Important issue. A minor
 coverage gap remains for equal-area/depth ICO ties and three-or-more-entry
 directory ordering; those branches were reviewed by inspection, not a dedicated
 fixture. `git diff --check` and the post-documentation repository checks passed.
+
+The post-commit recursive consumer packaged and inspected successfully at exact
+implementation `1864dfbb4bd0a65b2288b687440844a8677a5002`. This follow-up changes
+the verification record only. The candidate remains local and Unreleased.
