@@ -5,6 +5,17 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed-folder MSI installs skip the redundant Options page; progress appears
+  before discovery/costing and stays available across maintenance confirmations.
+- MSI completion ignores unrelated machine pending restarts, retains opt-in Run
+  after successful install/update, and reports transaction file-replacement restarts.
+- Wizard ICO logos select the largest frame instead of stretching the first small
+  frame; inspection verifies the derived resource ([UI contract](msi/README.md#native-setup-and-maintenance)).
+- Welcome no longer asks users to close an application that may not be running;
+  native files-in-use detection requests closure only when needed.
+
 ## [0.5.0-beta.1] - 2026-10-24
 
 ### Added

@@ -111,8 +111,13 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
   Event WbtInstallDetails Close EndDialog Return
   Cycle WbtInstallDetails @('Location','Log','Close')
  }
- $restart='MsiSystemRebootPending OR ReplacedInUseFiles'
- $offer='UILevel = 5 AND NOT Installed AND NOT REMOVE AND NOT REINSTALL AND NOT MsiSystemRebootPending AND NOT ReplacedInUseFiles'
+ # ReplacedInUseFiles is set by this transaction during execute/finalize. The
+ # machine-wide pending-rename flag says nothing about this operation's outcome.
+ # This bounded engine authors no reboot actions, services, drivers or executable
+ # custom actions. General MSIRUNMODE_REBOOTATEND is an API flag, not a property;
+ # do not invent one or infer it by inspecting/changing machine pending state.
+ $restart='ReplacedInUseFiles'
+ $offer='UILevel = 5 AND NOT Installed AND NOT REMOVE AND NOT REINSTALL AND NOT ReplacedInUseFiles'
  $states=@(
   @('Installed','NOT REMOVE AND NOT REINSTALL AND NOT Installed AND NOT OLDERVERSIONS','[ProductName] was installed successfully',(Message installed 'Find [ProductName] in your Start menu. You can start using it right away.')),
   @('Updated','NOT REMOVE AND NOT REINSTALL AND NOT Installed AND OLDERVERSIONS','[ProductName] is up to date',(Message updated 'The new version is installed. Your personal application data has been kept.')),
@@ -133,7 +138,7 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
     Control $dialog ('Message'+$state[0]) Text $x $messageY $width 60 $attributes $null $state[3]
     Visibility $dialog ('Message'+$state[0]) ('('+$state[1]+') AND NOT ('+$restart+')')
    }
-   Control $dialog Restart Text $x $messageY $width 60 2 $null (Message restartRequired 'Windows may require a restart to finish applying changes. Review the setup log and installation result.')
+   Control $dialog Restart Text $x $messageY $width 60 2 $null (Message restartRequired 'Restart Windows to finish applying changes to [ProductName].')
    Visibility $dialog Restart $restart
   } else {
    $heading=if($dialog -ceq 'WbtUserExit'){'[ProductName] setup was canceled'}else{'[ProductName] setup could not complete'}
@@ -149,7 +154,7 @@ function Update-MsiPresentationModel($Model,$Configuration,[string]$Architecture
     Control $dialog Launch CheckBox $x 157 $width 30 3 WBTLAUNCHAPP 'Run [ProductName] when I click Finish'
     Row CheckBox @('WBTLAUNCHAPP','1');Visibility $dialog Launch $offer;$cycle.Add('Launch')
     $file=Get-MsiId F ([guid]$Configuration.product.upgradeCode) ($Architecture+'/'+$Configuration.application.executable.Replace('\','/'))
-    Event $dialog Finish MsiLaunchApp ('"[#'+$file+']"') ('UILevel = 5 AND WBTLAUNCHAPP = 1 AND NOT Installed AND NOT REMOVE AND NOT REINSTALL AND NOT MsiSystemRebootPending AND NOT ReplacedInUseFiles') 2
+    Event $dialog Finish MsiLaunchApp ('"[#'+$file+']"') ('WBTLAUNCHAPP = 1 AND '+$offer) 2
    }
    $linkX=$x
    foreach($link in @(@('ReleaseNotesLink','releaseNotesUrl','Release notes'),@('HelpLink','helpUrl','Getting started'))) {

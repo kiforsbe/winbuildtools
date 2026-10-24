@@ -48,7 +48,7 @@
       "messages": {
         "installed": "Example is ready to use.",
         "removed": "Example has been removed.",
-        "restartRequired": "Windows may require a restart. Check the setup log.",
+        "restartRequired": "Restart Windows to finish applying changes.",
         "updated": "The new version is ready.",
         "failed": "Setup failed. Review the log before retrying.",
         "canceled": "Setup was canceled. Review the log if needed.",

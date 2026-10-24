@@ -46,7 +46,7 @@ try {
   $launch=@($ui.Events | Where-Object Event -CEQ MsiLaunchApp)
   $file=@($info.SemanticTables.File | Where-Object FileName -Match 'Example.exe')[0]
   Check ($launch.Count -eq 1 -and $launch[0].Argument -ceq ('"[#'+$file.File+']"')) 'Launch is exact installed executable identity, without arbitrary command arguments.'
-  foreach($condition in @('UILevel = 5','WBTLAUNCHAPP = 1','NOT Installed','NOT REMOVE','NOT REINSTALL','NOT MsiSystemRebootPending','NOT ReplacedInUseFiles')) { Check ($launch[0].Condition.Contains($condition)) "Launch gating must include $condition" }
+  foreach($condition in @('UILevel = 5','WBTLAUNCHAPP = 1','NOT Installed','NOT REMOVE','NOT REINSTALL','NOT ReplacedInUseFiles')) { Check ($launch[0].Condition.Contains($condition)) "Launch gating must include $condition" }
   Check (!$info.Properties.ContainsKey('WBTLAUNCHAPP')) 'Launch choice is initially unchecked.'
   Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtBrowse' -and $_.Event -ceq 'CheckTargetPath' -and $_.Ordering -eq '1' }).Count -eq 1) 'Browse validates before committing the selection.'
   Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtBrowse' -and $_.Control_ -ceq 'Cancel' -and $_.Event -ceq '[WBTINSTALLPATH]' }).Count -eq 0) 'Browse Cancel must not change original destination.'
@@ -110,11 +110,19 @@ try {
   $installer=New-Object -ComObject WindowsInstaller.Installer;$previousUi=$installer.UILevel;$installer.UILevel=2
   $session=$installer.OpenPackage([IO.Path]::GetFullPath("$fixture/conditions.msi"),0)
   $condition=@((Read-MsiMaintenanceUi $tamperSource).Events | Where-Object Event -CEQ MsiLaunchApp)[0].Condition
-  foreach($case in @(@('allowed','',1),@('WBTLAUNCHAPP','',0),@('Installed','1',0),@('REMOVE','ALL',0),@('REINSTALL','ALL',0),@('UILevel','2',0),@('UILevel','3',0),@('UILevel','4',0),@('MsiSystemRebootPending','1',0),@('ReplacedInUseFiles','1',0))) {
+  $conditionDb=$installer.OpenDatabase($tamperSource,0)
+  try {$exit=@(Get-MsiRows $conditionDb ControlCondition @('Dialog_','Control_','Action','Condition'))}finally{Close-MsiCom $conditionDb}
+  foreach($case in @(@('allowed','',1),@('WBTLAUNCHAPP','',0),@('Installed','1',0),@('REMOVE','ALL',0),@('REINSTALL','ALL',0),@('UILevel','2',0),@('UILevel','3',0),@('UILevel','4',0),@('MsiSystemRebootPending','1',1),@('ReplacedInUseFiles','1',0))) {
    foreach($property in @('Installed','REMOVE','REINSTALL','MsiSystemRebootPending','ReplacedInUseFiles')){$session.Property($property)=''}
    $session.Property('UILevel')='5';$session.Property('WBTLAUNCHAPP')='1'
    if($case[0] -ne 'allowed'){$session.Property($case[0])=$case[1]}
    Check ($session.EvaluateCondition($condition) -eq $case[2]) "Native launch condition: $($case[0])=$($case[1])"
+   foreach($item in @(@('Launch','Show',1),@('MessageInstalled','Show',1),@('Restart','Show',0))) {
+    if($case[0] -notin @('allowed','MsiSystemRebootPending','ReplacedInUseFiles')) {continue}
+    $gate=@($exit | Where-Object { $_.Dialog_ -ceq 'WbtExit' -and $_.Control_ -ceq $item[0] -and $_.Action -ceq $item[1] })[0].Condition
+    $expected=if($case[0] -eq 'ReplacedInUseFiles'){1-$item[2]}else{$item[2]}
+    Check ($session.EvaluateCondition($gate) -eq $expected) "Native completion state $($item[0]): $($case[0])"
+   }
   }
  } finally {Close-MsiCom $session;if($installer -and $null -ne $previousUi){$installer.UILevel=$previousUi};Close-MsiCom $installer}
  # Corrupt or oversize sources fail before authoring. Keep file membership and
@@ -150,6 +158,60 @@ try {
   Assert-MsiBrandingAssets @{ui=@{logo="format.$format"}} $fixture
   Check ($true) "Supported image format decoded: $format"
  }
+ # Native Icon controls without IconSize bits load the FIRST entry, not the
+ # largest. Use conspicuously different PNG frames to catch 16px-first sources.
+ $ico="$fixture/multiframe.ico"
+ $output=[IO.MemoryStream]::new();$writer=[IO.BinaryWriter]::new($output)
+ try {
+  $frames=@(foreach($size in @(16,256)) {
+   $image=[Drawing.Bitmap]::new($size,$size);$buffer=[IO.MemoryStream]::new()
+   try {$image.SetPixel(0,0,[Drawing.Color]::Blue);$image.Save($buffer,[Drawing.Imaging.ImageFormat]::Png);,@($buffer.ToArray())}finally{$buffer.Dispose();$image.Dispose()}
+  })
+  $writer.Write([uint16]0);$writer.Write([uint16]1);$writer.Write([uint16]2)
+  $offset=38
+  for($i=0;$i -lt 2;$i++) {
+   $size=if($i -eq 0){16}else{0}
+   $writer.Write([byte]$size);$writer.Write([byte]$size);$writer.Write([uint16]0);$writer.Write([uint16]1);$writer.Write([uint16]32)
+   $writer.Write([uint32]$frames[$i].Length);$writer.Write([uint32]$offset);$offset+=$frames[$i].Length
+  }
+  foreach($frame in $frames){$writer.Write([byte[]]$frame)}
+  [IO.File]::WriteAllBytes($ico,$output.ToArray())
+ }finally{$writer.Dispose();$output.Dispose()}
+ $source=[IO.File]::ReadAllBytes($ico)
+ $normalized=Get-MsiBrandingBytes $ico
+ Check ($normalized[6] -eq 0 -and $normalized[7] -eq 0) 'UI ICO must place the 256px frame first.'
+ Check ([Convert]::ToHexString($source[38..($source.Length-1)]) -ceq [Convert]::ToHexString($normalized[38..($normalized.Length-1)])) 'ICO normalization must preserve every encoded image byte.'
+ Check ((Get-FileHash $ico).Hash -ceq [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($source))) 'Canonical payload ICO must remain unchanged.'
+ [IO.File]::WriteAllBytes("$fixture/normalized.ico",$normalized)
+ Check ([Convert]::ToHexString((Get-MsiBrandingBytes "$fixture/normalized.ico")) -ceq [Convert]::ToHexString($normalized)) 'ICO normalization must be deterministic and idempotent.'
+ $bad=[byte[]]$source.Clone();$selectedOffset=[BitConverter]::ToUInt32($bad,34);$bad[$selectedOffset]=0
+ [IO.File]::WriteAllBytes("$fixture/bad-selected.ico",$bad)
+ $failure=$null;try{Assert-MsiBrandingAssets @{ui=@{logo='bad-selected.ico'}} $fixture}catch{$failure=$_}
+ Check ($null -ne $failure) 'A valid small frame must not conceal malformed selected high-resolution image data.'
+ foreach($mutation in @('header','count','offset','length')) {
+  $bad=[byte[]]$source.Clone()
+  switch($mutation) {header {$bad[2]=2} count {$bad[4]=255} offset {[BitConverter]::GetBytes([uint32]1).CopyTo($bad,18)} length {[BitConverter]::GetBytes([uint32]::MaxValue).CopyTo($bad,14)}}
+  [IO.File]::WriteAllBytes("$fixture/bad.ico",$bad)
+  $failure=$null;try{Get-MsiBrandingBytes "$fixture/bad.ico" | Out-Null}catch{$failure=$_}
+  Check ($null -ne $failure) "Malformed ICO directory must be rejected: $mutation"
+ }
+ # Author/inspect a genuine derived Binary stream, not only an in-memory helper.
+ Copy-Item $ico "$fixture/payload/Assets/logo.ico"
+ $iconCfg=$optout | ConvertTo-Json -Depth 15 | ConvertFrom-Json -AsHashtable
+ $iconCfg.ui=@{logo='Assets/logo.ico';layout='brandedSidebar'}
+ $iconCfg.payload.allowedExtensions+=,'.ico';$iconCfg.components['Assets/logo.ico']=[guid]::NewGuid().ToString('B')
+ New-MsiPackage $iconCfg "$fixture/payload" "$fixture/icon.msi" '1.2.3' x64
+ Check ((Get-MsiBrandingHash "$fixture/icon.msi" WbtUiLogo) -ceq [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($normalized))) 'Embedded native ICO must use high-resolution-first bytes.'
+ Assert-MsiContents "$fixture/icon.msi" "$fixture/payload" $iconCfg '1.2.3' x64 "$fixture/inspect-icon"
+ $installer=$null;$db=$null
+ try {
+  $installer=New-Object -ComObject WindowsInstaller.Installer;$db=$installer.OpenDatabase("$fixture/icon.msi",1)
+  Invoke-MsiSql $db 'DELETE FROM `Binary` WHERE `Name`=''WbtUiLogo'''
+  Add-MsiRow $installer $db Binary @('Name','Data') @('WbtUiLogo',$ico) @(1)
+  $null=$db.Commit()
+ }finally{Close-MsiCom $db;Close-MsiCom $installer}
+ $failure=$null;try{Assert-MsiContents "$fixture/icon.msi" "$fixture/payload" $iconCfg '1.2.3' x64 "$fixture/reject-original-ico"}catch{$failure=$_}
+ Check ($null -ne $failure -and !(Test-Path "$fixture/reject-original-ico")) 'An unnormalized ICO stream must be rejected before extraction even when its bytes match the approved source.'
  Write-Host "Presentation checks passed: $checks"
 } finally {
  $target=[IO.Path]::GetFullPath($fixture)

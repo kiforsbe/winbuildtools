@@ -41,7 +41,12 @@ try {
   Check (@($wizard.ControlCondition.Rows | Where-Object { $_[0] -ceq 'WbtProgress' -and $_[1] -ceq 'Cancel' -and $_[2] -ceq 'Disable' -and $_[3] -ceq 'UILevel < 5' }).Count -eq 1) 'Reduced UI must not offer a Cancel event that requires full UI.'
   Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtProgress' -and $_.Event -ceq 'EndDialog' }).Count -eq 0) 'Do not publish unsupported reduced-UI EndDialog.'
   Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtWelcome' -and $_.Event -ceq '[WBTINSTALLPATH]' -and $_.Argument -ceq '[INSTALLFOLDER]' -and $_.Condition -match 'NOT WBTINSTALLPATH' }).Count -eq 1) 'Full UI must honor an explicit destination without resetting it on Back.'
-  foreach($dialog in @('WbtWelcome','WbtOptions','WbtReady','WbtMaintenance','WbtRemove','WbtRepair','WbtUpgrade','WbtProgress','WbtCancelConfirm')) {
+  $welcomeMessage=@($ui.Controls | Where-Object { $_.Dialog_ -ceq 'WbtWelcome' -and $_.Control -ceq 'Message' })[0].Text
+  Check ($welcomeMessage -notmatch 'Close the application') 'Welcome must not assert the application is running.'
+  Check (@($ui.Dialogs | Where-Object Dialog -CEQ WbtOptions).Count -eq 0) 'Fixed-folder installs must not show a redundant Options page.'
+  Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtWelcome' -and $_.Event -ceq 'NewDialog' -and $_.Argument -ceq 'WbtReady' }).Count -eq 1) 'Fixed-folder Welcome proceeds to the single Install confirmation.'
+  Check (@($ui.Events | Where-Object { $_.Dialog_ -ceq 'WbtReady' -and $_.Control_ -ceq 'Back' -and $_.Argument -ceq 'WbtWelcome' }).Count -eq 1) 'Fixed-folder Back returns to Welcome.'
+  foreach($dialog in @('WbtWelcome','WbtReady','WbtMaintenance','WbtRemove','WbtRepair','WbtUpgrade','WbtProgress','WbtCancelConfirm')) {
    Check (@($ui.Dialogs | Where-Object Dialog -CEQ $dialog).Count -eq 1) "Native wizard page missing: $dialog"
   }
   Check (@($ui.EventMappings | Where-Object { $_.Dialog_ -ceq 'WbtProgress' -and $_.Control_ -ceq 'Progress' -and $_.Event -ceq 'SetProgress' -and $_.Attribute -ceq 'Progress' }).Count -eq 1) 'Progress must subscribe to actual native engine ticks.'
@@ -54,6 +59,12 @@ try {
   Check (@($ui.InstallUi | Where-Object { $_.Action -ceq 'WbtRemove' -and $_.Condition -match 'NOT WBTMAINTENANCEUI' }).Count -eq 1) 'Remove selected in maintenance must not show confirmation twice.'
   $progress=@($ui.Dialogs | Where-Object Dialog -CEQ WbtProgress)[0]
   Check (($progress.Attributes -band 2) -eq 0) 'Progress must be modeless so the engine sequence can execute.'
+  $progressSequence=@($ui.InstallUi | Where-Object Action -CEQ WbtProgress)
+  Check ($progressSequence.Count -eq 1 -and [int]$progressSequence[0].Sequence -gt 5 -and [int]$progressSequence[0].Sequence -lt 25) 'One progress page must appear immediately after consent, before discovery/costing.'
+  foreach($name in @('WbtMaintenance','WbtRemove','WbtRepair','WbtUpgrade','WbtCancelConfirm','WbtError')) {
+   $modal=@($ui.Dialogs | Where-Object Dialog -CEQ $name)[0]
+   Check (([int]$modal.Attributes -band 16) -ne 0) "Post-preparation modal dialog must retain modeless progress: $name"
+  }
   foreach($dialog in @($ui.Dialogs | Where-Object Dialog -Like 'Wbt*')) {
    $cycle=@($ui.Controls | Where-Object { $_.Dialog_ -ceq $dialog.Dialog -and $_.Control_Next })
    foreach($control in $cycle) {
@@ -82,6 +93,26 @@ try {
  $scope=Get-MsiScopeDefinition $choice x64
  Check (@($scope.ControlEvent.Rows | Where-Object { $_[2] -ceq '[WBTINSTALLPATH]' -and $_[3] -ceq '[INSTALLFOLDER]' }).Count -eq 1) 'Scope chooser preserves an explicit initial destination.'
  Check (@($scope.ControlEvent.Rows | Where-Object { $_[2] -ceq '[WBTINSTALLPATH]' -and $_[4] -match 'WBTSELECTEDSCOPE <> WBTINSTALLSCOPE' }).Count -eq 2) 'Changing scope resets the destination; revisiting unchanged scope preserves edits.'
+ foreach($editable in @($false,$true)) {
+  foreach($licensed in @($false,$true)) {
+   foreach($scopeMode in @('user','machine','choice')) {
+    $flow=$choice | ConvertTo-Json -Depth 15 | ConvertFrom-Json -AsHashtable
+    $flow.installation.scope=$scopeMode;$flow.ui=@{allowDirectoryChange=$editable}
+    if($licensed){$flow.ui.licenseText='Example agreement'}
+    $definition=Get-MsiWizardDefinition $flow x64
+    $scopeDefinition=Get-MsiScopeDefinition $flow x64
+    $first=if($editable){'WbtOptions'}elseif($licensed){'WbtLicense'}else{'WbtReady'}
+    $back=if($editable){'WbtOptions'}elseif($scopeMode -eq 'choice'){'WbtScope'}else{'WbtWelcome'}
+    $forward=if($scopeMode -eq 'choice'){$scopeDefinition.ControlEvent.Rows}else{$definition.ControlEvent.Rows}
+    $entry=if($scopeMode -eq 'choice'){'WbtScope'}else{'WbtWelcome'}
+    Check (@($forward | Where-Object { $_[0] -ceq $entry -and $_[2] -ceq 'NewDialog' -and $_[3] -ceq $first }).Count -eq 1) "First optional page: editable=$editable license=$licensed scope=$scopeMode"
+    $last=if($licensed){'WbtLicense'}else{$back}
+    Check (@($definition.ControlEvent.Rows | Where-Object { $_[0] -ceq 'WbtReady' -and $_[1] -ceq 'Back' -and $_[3] -ceq $last }).Count -eq 1) 'Ready Back follows the actual optional-page chain.'
+    if($licensed){Check (@($definition.ControlEvent.Rows | Where-Object { $_[0] -ceq 'WbtLicense' -and $_[1] -ceq 'Back' -and $_[3] -ceq $back }).Count -eq 1) 'License Back skips absent Options.'}
+    Check (@($definition.Dialog.Rows | Where-Object {$_[0] -ceq 'WbtOptions'}).Count -eq [int]$editable) 'Only editable destinations author Options.'
+   }
+  }
+ }
  # This is an actual copied package mutation, not a mock database reader.
  foreach($mutation in @(
   'UPDATE `CustomAction` SET `Type`=226 WHERE `Action`=''WbtSetInstallLocation''',

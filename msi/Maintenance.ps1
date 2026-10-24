@@ -60,7 +60,8 @@ function Add-MsiMaintenanceUi($Installer,$Database) {
  # Windows selects/repositions the appropriate subset of these seven buttons;
  # error controls deliberately have no Control_Next cycle.
  Add-MsiRow $Installer $Database Property @('Property','Value') @('ErrorDialog','WbtError')
- Add-MsiRow $Installer $Database Dialog @('Dialog','HCentering','VCentering','Width','Height','Attributes','Title','Control_First') @('WbtError',50,50,380,200,65539,'[ProductName] - Setup message','ErrorText')
+ # KeepModeless preserves the progress surface across recoverable native errors.
+ Add-MsiRow $Installer $Database Dialog @('Dialog','HCentering','VCentering','Width','Height','Attributes','Title','Control_First') @('WbtError',50,50,380,200,65555,'[ProductName] - Setup message','ErrorText')
  Add-MsiRow $Installer $Database Control $columns @('WbtError','ErrorText','Text',16,16,348,128,3,$null,' ',$null)
  $errorButtons=[ordered]@{A=@('Abort','&Abort');C=@('Cancel','&Cancel');I=@('Ignore','&Ignore');N=@('No','&No');O=@('Ok','&OK');R=@('Retry','&Retry');Y=@('Yes','&Yes')}
  foreach($button in $errorButtons.GetEnumerator()) {
@@ -146,7 +147,7 @@ function Assert-MsiStandardDialogs($Ui) {
  # Verify the standard authored-UI contract as well as file-use consent. This
  # structural check is not an ICE run or proof that a real message was displayed.
  $errorDialogs=@($Ui.Dialogs | Where-Object Dialog -CEQ 'WbtError')
- if($errorDialogs.Count -ne 1 -or $errorDialogs[0].Attributes -ne '65539' -or $errorDialogs[0].Control_First -cne 'ErrorText') { throw 'MSI standard error dialog mismatch.' }
+ if($errorDialogs.Count -ne 1 -or $errorDialogs[0].Attributes -ne '65555' -or $errorDialogs[0].Control_First -cne 'ErrorText') { throw 'MSI standard error dialog mismatch.' }
  $errorControls=@($Ui.Controls | Where-Object Dialog_ -CEQ 'WbtError')
  Assert-MsiStandardDialogLayout $errorDialogs[0] $errorControls
  $errorEvents=@($Ui.Events | Where-Object Dialog_ -CEQ 'WbtError')

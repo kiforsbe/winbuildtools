@@ -171,12 +171,13 @@ typography, headers, publisher/footer and Back/Next/Cancel controls:
 ```mermaid
 flowchart LR
     Welcome --> Scope[Scope if choice]
-    Scope --> Options[Destination]
+    Scope --> Options[Destination if editable]
     Options --> License[License if supplied]
     License --> Ready
-    Ready --> Cost[Native discovery and costing]
+    Ready --> Prepare[Show modeless progress]
+    Prepare --> Cost[Native discovery and costing]
     Cost --> Upgrade[Upgrade confirmation if needed]
-    Upgrade --> Progress[Real engine progress]
+    Upgrade --> Progress[Continue engine progress]
     Progress --> Result[Completed / canceled / failed]
 ```
 
@@ -184,7 +185,11 @@ Absent optional pages are skipped. Choices and Back navigation finish before
 related-product discovery/costing. A same-product launch offers Repair/Remove;
 `msiexec /x {ProductCode}` opens removal confirmation directly. Maintenance never
 offers a scope change. Repair/removal use native feature-state events. Windows
-Installer owns progress ticks, rollback and files-in-use handling. Full UI asks
+Installer owns progress ticks, rollback and files-in-use handling. Welcome uses
+neutral instructions; the engine requests application closure only when files
+are in use. A single modeless progress page opens after Install consent, before
+discovery/costing. Post-cost maintenance/upgrade/error confirmations retain it
+with the native KeepModeless flag; termination pages replace it. Full UI asks
 before cancellation. Reduced `/qr` shows progress with Cancel disabled because
 MSI's authored cancellation events require full UI; use `/qb` for the engine's
 built-in interactive progress/cancellation or `/qf` for the wizard. `/qn` has no UI.
@@ -211,7 +216,7 @@ Both schemas accept these optional presentation fields:
       "removed": "The application has been removed.",
       "canceled": "Setup was canceled. Review the log if needed.",
       "failed": "Setup failed. Review the log before retrying.",
-      "restartRequired": "Windows may require a restart. Check the setup log."
+      "restartRequired": "Restart Windows to finish applying changes."
     }
   }
 }
@@ -238,17 +243,33 @@ maps must include them. Each image is limited to 8 MiB and 2048×2048 pixels, de
 before output creation; its actual format must match its extension. Use artwork
 with the intended aspect ratio: roughly 1:1 for logos and 120:242 for sidebar art.
 Images are embedded in the MSI's native Binary table; exact resource names and
-SHA-256 bytes are checked before any costing. No download or image package is used.
+SHA-256 bytes are checked before any costing. For ICO logos the UI resource moves
+the largest-area frame (highest bit depth on a tie) to the first directory entry,
+which native MSI loads. All encoded frames and the installed payload ICO remain
+unchanged. The selected frame is decoded before authoring; inspection recomputes
+the exact derived resource hash. Other image formats remain byte-identical to
+their payload source. No download or image package is used.
 
 Finish pages distinguish installation, update, repair and removal. Normal logs
 sit behind Details; cancellation/failure retain visible log information even when
-`showDetails=false`. Restart text is advisory, based on native pending-restart/
-in-use-file properties; it is not a substitute for the engine's exit code/log.
+`showDetails=false`. Restart text appears only when the transaction sets
+`ReplacedInUseFiles` during execution/finalization, with a clear instruction to
+restart. An unrelated machine `MsiSystemRebootPending` flag does not override
+successful completion or hide Run. This engine authors file/shortcut/registration
+operations only: no services, drivers, prerequisites, reboot actions or executable
+custom actions. General `MSIRUNMODE_REBOOTATEND` is a session API mode, not an MSI
+condition property; the wizard does not claim to read that mode. Deployment must
+still preserve Windows Installer's actual result, including 3010 when returned.
 Hyperlinks appear after successful install/update. Their destinations belong to
 the consumer and open in the default browser only when clicked.
 
+See Microsoft's [transaction file-replacement signal](https://learn.microsoft.com/en-us/windows/win32/msi/replacedinusefiles),
+[machine pending flag](https://learn.microsoft.com/en-us/windows/win32/msi/msisystemrebootpending),
+[native ICO selection](https://learn.microsoft.com/en-us/windows/win32/msi/icon-control)
+and [KeepModeless behavior](https://learn.microsoft.com/en-us/windows/win32/msi/keepmodeless-dialog-style-bit).
+
 The Run checkbox never defaults to checked and is absent during repair, removal,
-failure/cancellation, reduced/basic/silent UI or a detected pending restart. Its
+failure/cancellation, reduced/basic/silent UI or transaction in-use replacement. Its
 native `MsiLaunchApp` event accepts only the configured executable's installed File
 key, with no command/argument fields. Actual launch identity/privilege behavior
 still needs disposable-host acceptance, especially when setup was started elevated.
@@ -259,10 +280,11 @@ OK validates before committing; Cancel preserves the original destination. It
 offers no New folder action that could write directories before confirmation.
 Native costing remains responsible for the final destination validation.
 
-Destination editing defaults to false. Disabling editing leaves the Options page
-visible with a read-only destination. Hiding that page entirely is not currently
-a schema option. There is
-also no schema field for choosing/editing the log path: Details shows it read-only,
+Destination editing defaults to false. When disabled, the Options page is omitted
+and Ready shows the fixed destination once before the Install button. Optional
+scope/license pages and Back navigation follow the remaining chain. Enabling
+editing retains Options, with Browse separately configurable. There is no schema
+field for choosing/editing the log path: Details shows it read-only,
 and deployment may choose its logging destination through `msiexec /L*v`.
 A command-line `INSTALLFOLDER` is honored in full UI; Back preserves edits until
 scope is actually switched. The resolved
@@ -298,7 +320,7 @@ Agenda/ProcSight packages by itself.
 
 Automatic native logging is enabled with `MsiLogging=voicewarmupx`; result pages
 show `MsiLogFileLocation` when available. `/L*v path.log` gives deployments a
-known retained log. Conditional restart text is advisory: check engine exit codes
+known retained log. Transaction file-replacement restart text complements engine exit codes
 (including 3010) and logs even when reboot prompts are suppressed. Optional launch
 requires the consumer setting and user checkbox above. [Preview and acceptance](../docs/MSI-ACCEPTANCE.md) distinguishes
 inactive native rendering from actual servicing acceptance.

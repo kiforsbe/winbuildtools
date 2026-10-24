@@ -399,3 +399,42 @@ execution. The recursive consumer used committed baseline
 consumer check precedes publication. `git diff --check` passed. No GitHub Actions
 was dispatched and no installed lifecycle, application launch, link navigation or
 certificate trust mutation was performed.
+
+## Native wizard correction candidate — 2026-10-24
+
+The VidVNC consumer reported unconditional application-close instructions,
+redundant fixed-folder Options/Ready pages, a gap before progress, low-resolution
+ICO rendering, and normal success being replaced by a machine-wide pending-reboot
+warning that also hid Run. Regressions reproduced Welcome wording, native launch
+suppression with `MsiSystemRebootPending=1`, missing KeepModeless retention, and a
+valid small ICO frame concealing corrupt selected high-resolution image data.
+
+Fresh `./verify.ps1 -Integration` exited 0 on Windows x64 with PowerShell 7.6.5,
+Windows SDK 10.0.26100.0 and .NET SDK 10.0.301: configuration 68, v1 157, v2 151,
+wizard/registration 467 and presentation 988 checks passed. Shared helpers, MSIX,
+signing/certificate, .NET and repository/provenance/help/manual-CI checks passed,
+including 131 local document links. The expected missing-assets negative .NET
+fixture preceded successful locked restore/build/publish/execution. That run's
+recursive consumer cloned committed baseline `d9ec7c72`; a post-commit consumer
+check is required for the exact candidate. No dependency was added or upgraded.
+
+Eight inactive native previews covered Welcome, Ready, Progress and successful
+Finish in both layouts, using a copied consumer multi-frame ICO with its 256px
+image selected first. Success retained its ordinary message and unchecked Run
+with machine-pending set and transaction `ReplacedInUseFiles` unset. These are
+rendering checks, not live navigation, launch, progress continuity or UAC evidence.
+Native MSI tables/conditions test routing across fixed/editable destinations,
+scope modes and licenses, progress sequence/retention, and actual in-use replacement
+gating. Derived ICO resource mutations are rejected before costing/extraction.
+
+`ReplacedInUseFiles` is the supported transaction restart signal for these bounded
+file-based packages. No general reboot-mode API probe or executable custom action
+was added; callers must preserve the actual MSI return code, including 3010. No
+real application installation/removal, trust mutation, hosted Actions, tag or
+release was performed for this candidate. Installed servicing/UAC/launch acceptance
+remains pending because no disposable Windows host is available.
+
+Independent whole-change review found no Critical/Important issue. A minor
+coverage gap remains for equal-area/depth ICO ties and three-or-more-entry
+directory ordering; those branches were reviewed by inspection, not a dedicated
+fixture. `git diff --check` and the post-documentation repository checks passed.

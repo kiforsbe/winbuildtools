@@ -18,6 +18,7 @@ function Get-MsiScopeProperties($Configuration) {
  return $result
 }
 function Get-MsiScopeDefinition($Configuration,[string]$Architecture) {
+ $nextPage=if($Configuration.ui.allowDirectoryChange){'WbtOptions'}elseif($Configuration.ui.licenseText){'WbtLicense'}else{'WbtReady'}
  # This bounded declarative model is consumed by authoring and inspection. Tests
  # additionally assert native property semantics and ordering independently.
  # Remember the last selected scope so Back preserves edited destinations unless
@@ -45,7 +46,7 @@ function Get-MsiScopeDefinition($Configuration,[string]$Architecture) {
    @('WbtScope','Continue','[WBTINSTALLPATH]',(Get-MsiDefaultInstallPath $Configuration $Architecture user),'WBTINSTALLSCOPE="user" AND (NOT WBTINSTALLPATH OR (WBTSELECTEDSCOPE AND WBTSELECTEDSCOPE <> WBTINSTALLSCOPE))',5),
    @('WbtScope','Continue','[WBTINSTALLPATH]',(Get-MsiDefaultInstallPath $Configuration $Architecture machine),'WBTINSTALLSCOPE="machine" AND (NOT WBTINSTALLPATH OR (WBTSELECTEDSCOPE AND WBTSELECTEDSCOPE <> WBTINSTALLSCOPE))',6),
    @('WbtScope','Continue','[WBTSELECTEDSCOPE]','[WBTINSTALLSCOPE]','1',7),
-   @('WbtScope','Continue','NewDialog','WbtOptions','WBTINSTALLSCOPE="user" OR WBTINSTALLSCOPE="machine"',8),
+   @('WbtScope','Continue','NewDialog',$nextPage,'WBTINSTALLSCOPE="user" OR WBTINSTALLSCOPE="machine"',8),
    @('WbtScope','Back','NewDialog','WbtWelcome','1',1),
    @('WbtScope','Cancel','SpawnDialog','WbtCancelConfirm','1',1))}
   InstallUISequence=@{Columns=@('Action','Condition','Sequence');Rows=@()}

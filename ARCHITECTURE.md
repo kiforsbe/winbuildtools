@@ -170,12 +170,15 @@ permit standard-user installation for user/choice. Native MSI handles folder
 redirection. Restart Manager policy is explicit v2 consumer data.
 
 [Wizard.ps1](msi/Wizard.ps1) owns the bounded declarative setup, maintenance,
-progress and result model. Welcome/options/optional scope/license/Ready form a
+progress and result model. Welcome/optional scope/options/license/Ready form a
 single full-UI chain before FindRelatedProducts/AppSearch/costing. Ready transfers
 the destination to `INSTALLFOLDER`; Back preserves edits unless scope changes.
 Maintenance/upgrade confirmations run after costing and use native feature-state
-events for repair/removal. Progress is modeless and subscribes to actual engine
-events. Reduced UI displays progress with Cancel disabled because the authored
+events for repair/removal. Options exists only for editable destinations. One
+modeless progress row runs at sequence 10 after the Welcome chain's consent and
+before discovery/costing, and subscribes to actual engine events. Post-cost modal
+confirmations and recoverable errors use KeepModeless to retain it; termination
+pages replace it. Reduced UI displays progress with Cancel disabled because the authored
 cancel events require full UI. Full UI supplies cancellation confirmation and
 three distinct termination pages with log/restart hints. Native MSI owns rollback;
 static table inspection does not prove live navigation or recovery.
@@ -194,7 +197,12 @@ license data is escaped to RTF, with no executable objects or consumer RTF code.
 
 [Branding.ps1](msi/Branding.ps1) defines the two fixed optional Binary resources,
 validates consumer-approved payload images before output creation and compares
-their names and bounded SHA-256 bytes before native preflight. Image decoding uses
+their names and bounded SHA-256 bytes before native preflight. ICO directory
+normalization places the largest-area/highest-depth frame first without changing
+encoded frames or installed payload; selected-frame decoding rejects malformed
+high-resolution data hidden behind a valid small image. Authoring owns/removes a
+temporary derived ICO; inspection independently recomputes the normalized hash.
+Image decoding uses
 installed System.Drawing on Windows; it accepts no executable/DLL resource streams.
 Images remain ordinary approved payload files/components as well as embedded UI
 resources. `msi/` still has no external helper/package dependency.
@@ -205,10 +213,14 @@ logo controls, a native pre-cost Browse dialog, a read-only Details dialog and
 operation-specific result headings/messages. Browse commits only a validated
 temporary path and has no pre-install directory-creation action. Full-UI success
 launch uses one native `MsiLaunchApp` event for the configured executable File key,
-with no command/argument extension point. Repair/removal/restart-pending/silent
+with no command/argument extension point. Repair/removal/transaction-restart/silent
 paths cannot satisfy it. Consumer HTTPS links are HTML-escaped and opened only by
 native Hyperlink controls. Messages escape MSI brackets and preserve ampersands.
 Scope retains its own exact model, applying the shared header logo separately.
+Completion gates use transaction `ReplacedInUseFiles`, never machine-wide
+`MsiSystemRebootPending`. General reboot session modes are not table properties;
+no API probe/custom action is added. The bounded engine has no reboot/service/
+driver/prerequisite actions, and external callers must retain actual MSI exit codes.
 Wizard inspection compares the complete composed model; it permits no arbitrary
 extra control event. Actual navigation/launch identity remains installed acceptance.
 
