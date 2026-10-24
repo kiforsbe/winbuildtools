@@ -376,3 +376,8 @@ locked restore/build/publish/execution passed. The fresh recursive consumer used
 baseline `9d5729f6e6d3f7563d57494f968fef1a67f65a59`; exact committed-candidate
 consumer verification follows below. `git diff --check` passed. No application,
 product or trust entry was started/installed/removed/changed by these checks.
+The post-commit recursive consumer packaged/inspected successfully at exact
+implementation `e0206ea3e19e2d00532a9e70cb0eb68c65f96d69`. Final provenance/help/
+link checks and `git diff --check` passed. This result-only follow-up changes no
+executable code. Changes remain local and Unreleased; VERSION/tag `v0.4.0` and
+remote main were not changed. No GitHub Actions dispatch or real lifecycle run.
