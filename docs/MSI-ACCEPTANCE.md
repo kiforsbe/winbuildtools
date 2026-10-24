@@ -26,7 +26,7 @@ selection can differ from a live session. This proves rendering only, not Back,
 keyboard focus, consent, cancellation, progress ticks, UAC or reboot conditions.
 The preview is cleared before COM release to avoid native preview shutdown hangs.
 
-Unreleased presentation support adds `WbtBrowse` (when browsing is enabled) and
+Version 0.5.0-beta.1 presentation support adds `WbtBrowse` (when browsing is enabled) and
 `WbtInstallDetails` (when details are enabled). Preview can display both configured
 layouts and image resources. Some native properties, including a host's pending
 restart, can affect the preview. Explicit `-Properties @{MsiSystemRebootPending='';

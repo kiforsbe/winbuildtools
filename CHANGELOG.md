@@ -5,12 +5,21 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.0-beta.1] - 2026-10-24
+
 ### Added
 
 - Both MSI schemas accept branded-sidebar/compact-header layouts, logo/artwork,
   native folder browsing and configurable completion options ([UI contract](msi/README.md#native-setup-and-maintenance)).
 - Completion pages distinguish install/update/repair/removal and support optional
   app launch, HTTPS help links and installation details through `ui.completion`.
+
+### Known limitations
+
+- Installed Browse/link/launch behavior, launch privileges, UAC, ICE and accessibility
+  still require disposable-host acceptance ([acceptance guide](docs/MSI-ACCEPTANCE.md)).
+- Disabling folder changes leaves its Options page visible; log paths are read-only
+  and deployment-controlled rather than editable through the schema.
 
 ## [0.4.0] - 2026-10-23
 

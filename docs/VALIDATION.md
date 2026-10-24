@@ -381,3 +381,21 @@ implementation `e0206ea3e19e2d00532a9e70cb0eb68c65f96d69`. Final provenance/help
 link checks and `git diff --check` passed. This result-only follow-up changes no
 executable code. Changes remain local and Unreleased; VERSION/tag `v0.4.0` and
 remote main were not changed. No GitHub Actions dispatch or real lifecycle run.
+## Configurable presentation beta release — 2026-10-24
+
+The owner requested publication as a new beta. VERSION/current references and
+the changelog now identify `0.5.0-beta.1`, with a new Unreleased heading. This
+release includes the previously committed presentation implementation without
+further executable/dependency changes. The stable `v0.4.0` tag remains unchanged.
+Release notes retain the native/installed acceptance limitations and clarify that
+folder-editing opt-out does not hide Options and the wizard log path is read-only.
+
+Fresh `./verify.ps1 -Integration` exited 0: configuration 68, v1 157, v2 151,
+wizard/registration 433 and presentation 972. Shared/MSIX/signing/certificate/
+.NET/repository checks and 130 local document links passed. The expected
+missing-assets negative fixture preceded successful locked restore/build/publish/
+execution. The recursive consumer used committed baseline
+`a40444fd71fd077bd36ca4b3fcd5d2a640103bd6`; an additional exact release-commit
+consumer check precedes publication. `git diff --check` passed. No GitHub Actions
+was dispatched and no installed lifecycle, application launch, link navigation or
+certificate trust mutation was performed.

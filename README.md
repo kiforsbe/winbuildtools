@@ -65,10 +65,10 @@ progress, result/log pages and Start-shortcut uninstall metadata. Both schemas
 accept optional destination editing/license text and an existing application
 identity. See [native setup](msi/README.md#native-setup-and-maintenance) and the
 [non-installing preview / disposable acceptance guide](docs/MSI-ACCEPTANCE.md).
-Unreleased schema options additionally support both branded-sidebar and compact
+Beta `v0.5.0-beta.1` additionally supports both branded-sidebar and compact
 layouts, logo/artwork, native folder browsing and configurable finish actions;
-see the complete [UI example](msi/example-ui.json). These require a future deliberate
-tool pin update; the published `v0.4.0` tag is unchanged.
+see the complete [UI example](msi/example-ui.json). Deliberately pin that beta to
+use these options; `v0.4.0` remains the stable release.
 V1 and v2 graceful MSI maintenance use Windows Installer's Restart Manager to request normal
 application shutdown, with no automatic relaunch. Interactive UI asks for consent;
 silent deployment can request shutdown without prompting. Applications must handle
@@ -146,6 +146,6 @@ For implementation boundaries, data flow and maintenance constraints, see
 [MIT License](LICENSE). Extracted from Agenda/ProcSight with the copyright holder's
 explicit MIT relicensing authorization; retain [NOTICE.md](NOTICE.md). No Windows
 SDK, framework/runtime or application redistribution rights are supplied by this
-source license. Tool version: 0.4.0 (`v0.4.0`). Source is hosted at
+source license. Tool version: 0.5.0-beta.1 (`v0.5.0-beta.1`, prerelease). Source is hosted at
 [kiforsbe/winbuildtools](https://github.com/kiforsbe/winbuildtools).
 See the [changelog](CHANGELOG.md).

@@ -259,8 +259,13 @@ OK validates before committing; Cancel preserves the original destination. It
 offers no New folder action that could write directories before confirmation.
 Native costing remains responsible for the final destination validation.
 
-Destination editing defaults to false. A command-line `INSTALLFOLDER` is honored
-in full UI; Back preserves edits until scope is actually switched. The resolved
+Destination editing defaults to false. Disabling editing leaves the Options page
+visible with a read-only destination. Hiding that page entirely is not currently
+a schema option. There is
+also no schema field for choosing/editing the log path: Details shows it read-only,
+and deployment may choose its logging destination through `msiexec /L*v`.
+A command-line `INSTALLFOLDER` is honored in full UI; Back preserves edits until
+scope is actually switched. The resolved
 `INSTALLFOLDER` and `WBTACCEPTLICENSE` are secured for UI-to-server transfer under
 elevated managed installation. License text is plain text (1–4096 characters),
 escaped into Unicode RTF; omit it if no agreement is required. Supplied licenses
