@@ -3,7 +3,11 @@
 `verify.ps1` never installs a product. Its table/cabinet and isolated costing
 checks cannot establish installed lifecycle, elevation or Windows shell behavior.
 Use a disposable Windows installation for the acceptance matrix below. No such
-host was available for the 2026-10-23 implementation; these tests remain pending.
+host was available for the 2026-10-23 implementation. The limited, separately
+owner-authorized workstation tests on 2026-10-25 are recorded in
+[validation](VALIDATION.md#installed-consumer-and-shell-investigation--2026-10-25);
+they do not complete the full acceptance matrix or authorize future workstation
+changes.
 
 ## Native rendering without installation
 

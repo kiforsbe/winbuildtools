@@ -486,5 +486,39 @@ after commit. Two minor fixture hardening items remain deferred: waiting for
 complete marker contents rather than file existence, and parent-owned cleanup
 when a timeout forcibly terminates the worker. Normal fixture runs clean up their
 owned directory. The inspected fixtures and successful runs do not establish
-elevated installed launch privileges. Start-menu right-click Uninstall remains a
-separate reproduced installed failure; no speculative registration change was made.
+elevated installed launch privileges. Start-menu right-click Uninstall was a
+separate reproduced installed failure; the subsequent investigation is recorded below.
+
+
+## Installed consumer and Shell investigation — 2026-10-25
+
+The exact committed recursive consumer packaged and inspected successfully at
+`634ec1a85e814b71746bfd5ebbe78878aaca93c5`. With no disposable VM available,
+the owner explicitly authorized controlled VidVNC workstation repairs, isolated
+fixture installation/removal, and finally uninstall/reinstall preserving data.
+This exception does not authorize future machine-changing tests.
+
+The installed VidVNC baseline initially lacked the actual AppsFolder Uninstall
+verb despite correct shortcut metadata. Separate existing-product repairs tested
+NoModify, removal of shortcut uninstall metadata, an explicit AppID, ordinary
+shortcuts and a PE icon resource; none restored the verb. Four fresh metadata/
+NoModify combinations, three GUID-version controls and two full 273-file payload
+clones all exposed Uninstall in exact installed-package/catalog checks. All nine
+fixtures were removed; no fixture executable was launched. These results do not
+justify changing engine defaults or persistent consumer identities.
+
+The real baseline was uninstalled/reinstalled, preserving all 33 application data
+files. The owner then unpinned its Start entry and authorized one Explorer restart.
+Immediate checks still failed; a later identical check passed, and the owner
+confirmed Uninstall was visible. The catalog check bound the registered package
+code, installed component path and shortcut identity to the real application.
+Duplicate ARP entries and NoRemove/NoModify/SystemComponent flags were ruled out
+by read-only checks. Recovery is confirmed, but neither the root cause nor the
+necessity of any individual recovery step is established. No registration-policy
+fix was made, and no push, tag, release or GitHub Actions run was performed.
+
+This records per-user installed registration and actual Shell recovery, not full
+machine-scope/UAC, elevated-launch, accessibility or ICE acceptance. A separate
+inspection issue was also observed: single-member cabinets can be extracted under
+`payload.cab` rather than the expected file key. It remains unfixed; the diagnostic
+fixtures used two files or the full consumer payload.

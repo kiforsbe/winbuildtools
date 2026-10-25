@@ -327,8 +327,13 @@ native inactive preview in STA, clearing the dialog before COM cleanup; it never
 opens an install session. [acceptance.ps1](msi/tests/acceptance.ps1) prepares two
 fresh-identity packages by default; only explicit `-RunLifecycle -DisposableHost`
 invokes synthetic installed servicing. It is excluded from `verify.ps1`. The
-[acceptance guide](docs/MSI-ACCEPTANCE.md) separates native rendering evidence from
-pending installed Start/UAC/lifecycle/accessibility/ICE checks.
+[acceptance guide](docs/MSI-ACCEPTANCE.md) distinguishes native rendering and
+installed evidence from remaining UAC/lifecycle/accessibility/ICE checks.
+Start-menu acceptance must bind the exact registered package and installed
+component/shortcut identity to the actual Shell catalog Uninstall verb; correct
+MSI tables or shortcut properties alone do not establish that integration. The
+limited owner-authorized workstation investigation and delayed Shell recovery
+are recorded in [validation](docs/VALIDATION.md#installed-consumer-and-shell-investigation--2026-10-25).
 
 Maintain these constraints when changing scripts:
 

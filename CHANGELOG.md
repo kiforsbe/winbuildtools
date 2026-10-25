@@ -22,8 +22,8 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ### Known limitations
 
-- Installed consumer acceptance still lacks Start-menu right-click Uninstall
-  despite shortcut metadata; shell catalog integration remains under investigation.
+- MSI inspection can fail for single-file payloads because cabinet extraction
+  uses an unexpected filename ([validation](docs/VALIDATION.md#installed-consumer-and-shell-investigation--2026-10-25)).
 
 ## [0.5.0-beta.1] - 2026-10-24
 
