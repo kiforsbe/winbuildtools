@@ -102,6 +102,32 @@ try {
  Check (@($off.Controls | Where-Object Type -CEQ Hyperlink).Count -eq 0) 'Omitted links must author no hyperlink controls.'
  Check (@($off.Controls | Where-Object { $_.Dialog_ -ceq 'WbtOptions' -and $_.Control -ceq 'Path' -and $_.Type -ceq 'Edit' }).Count -eq 1) 'Browse can be disabled while retaining manual path editing.'
  Check (@($off.Controls | Where-Object { $_.Dialog_ -ceq 'WbtFatalError' -and $_.Control -ceq 'Log' }).Count -eq 1) 'Disabling optional details must retain failure diagnostics.'
+ # Both schemas author an initial checkbox value only when explicitly enabled.
+ foreach($selectionCase in @(@(1,'x64'),@(2,'x64'),@(1,'ARM64'),@(2,'ARM64'))) {
+  $version,$selectionArch=$selectionCase
+  $selectionName="$version-$selectionArch"
+  $selected=$tamperConfig | ConvertTo-Json -Depth 15 | ConvertFrom-Json -AsHashtable
+  if($version -eq 1){$selected.schemaVersion=1;$selected.Remove('components');$selected.Remove('architecture');$selected.product.Remove('productCode')}
+  if($version -eq 2){$selected.architecture=$selectionArch}
+  $selected.ui.completion.launchApplicationChecked=$true
+  New-MsiPackage $selected "$fixture/payload" "$fixture/selected-$selectionName.msi" '1.2.3' $selectionArch
+  Check ((Read-MsiPackage "$fixture/selected-$selectionName.msi").Properties.WBTLAUNCHAPP -ceq '1') 'Explicit preselection must initialize the native checkbox property.'
+  Assert-MsiContents "$fixture/selected-$selectionName.msi" "$fixture/payload" $selected '1.2.3' $selectionArch "$fixture/inspect-selected-$selectionName"
+  $changed="$fixture/changed-selection-$selectionName.msi"
+  Copy-Item "$fixture/selected-$selectionName.msi" $changed
+  $installer=$null;$db=$null
+  try {
+   $installer=New-Object -ComObject WindowsInstaller.Installer;$db=$installer.OpenDatabase($changed,1)
+   Invoke-MsiSql $db 'DELETE FROM `Property` WHERE `Property`=''WBTLAUNCHAPP'''
+   $null=$db.Commit()
+  }finally{Close-MsiCom $db;Close-MsiCom $installer}
+  $failure=$null;try{Assert-MsiContents $changed "$fixture/payload" $selected '1.2.3' $selectionArch "$fixture/reject-selection-$selectionName"}catch{$failure=$_}
+  Check ($null -ne $failure) 'Inspection must reject removed initial Launch selection.'
+  Check (!(Test-Path "$fixture/reject-selection-$selectionName")) 'Reject changed initial choice before extraction.'
+  $selected.ui.completion.launchApplicationChecked=$false
+  New-MsiPackage $selected "$fixture/payload" "$fixture/unselected-$selectionName.msi" '1.2.3' $selectionArch
+  Check (!(Read-MsiPackage "$fixture/unselected-$selectionName.msi").Properties.ContainsKey('WBTLAUNCHAPP')) 'Explicit false must leave Launch unchecked.'
+ }
  # Evaluate the launch gate with the real condition engine on an isolated copy.
  # No DoAction or UI navigation occurs: this only changes in-memory properties.
  New-MsiPreflightCopy $tamperSource "$fixture/conditions.msi"

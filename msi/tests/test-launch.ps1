@@ -62,10 +62,15 @@ namespace WbtLaunchFixture {
   static Timer timer;static int clicked;
   static string Text(IntPtr h){var b=new StringBuilder(512);GetWindowText(h,b,512);return b.ToString();}
   public static bool Clicked {get{return Volatile.Read(ref clicked)!=0;}}
-  public static void Start(string title){clicked=0;timer=new Timer(_=>{
+  public static void Start(string title,bool clearLaunch){clicked=0;timer=new Timer(_=>{
    EnumWindows((h,p)=>{uint id;GetWindowThreadProcessId(h,out id);if(id!=(uint)Process.GetCurrentProcess().Id||Text(h)!=title)return true;
+    if(Interlocked.CompareExchange(ref clicked,1,0)!=0)return false;
+    // Exercise the real checkbox click before Finish, rather than resetting its
+    // property in the test. Only this worker's uniquely titled dialog is touched.
+    if(clearLaunch)EnumChildWindows(h,(child,q)=>{if(!Text(child).StartsWith("Launch "))return true;
+     SendMessage(child,245,IntPtr.Zero,IntPtr.Zero);return false;},IntPtr.Zero);
     EnumChildWindows(h,(child,q)=>{if(Text(child).Replace("&","")!="Finish")return true;
-     if(Interlocked.CompareExchange(ref clicked,1,0)==0)SendMessage(child,245,IntPtr.Zero,IntPtr.Zero);return false;},IntPtr.Zero);return false;},IntPtr.Zero);
+     SendMessage(child,245,IntPtr.Zero,IntPtr.Zero);return false;},IntPtr.Zero);return false;},IntPtr.Zero);
   },null,200,200);}
   public static void Stop(){var t=timer;timer=null;if(t!=null)t.Dispose();}
  }
@@ -79,8 +84,12 @@ namespace WbtLaunchFixture {
  $cfg.ui=@{completion=@{launchApplication=$true;showDetails=$false}}
  $architecture=if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64'){'ARM64'}else{'x64'}
  New-MsiPackage $cfg "$fixture/payload with spaces" "$fixture/source.msi" '1.2.3' $architecture
- foreach($case in @(@('selected','1','','', $true),@('machine-pending','1','1','',$true),@('unchecked','','','',$false),@('transaction-restart','1','','1',$false))) {
-  $path=Join-Path $fixture ($case[0]+'.msi');New-MsiPreflightCopy "$fixture/source.msi" $path
+ $cfg.ui.completion.launchApplicationChecked=$true
+ New-MsiPackage $cfg "$fixture/payload with spaces" "$fixture/checked-source.msi" '1.2.3' $architecture
+ # null leaves the authored property intact; empty string explicitly clears it.
+ # The final flag exercises an actual native checkbox click before Finish.
+ foreach($case in @(@('selected','1','','',$true,'source',$false),@('default-unchecked',$null,'','',$false,'source',$false),@('preselected',$null,'','',$true,'checked-source',$false),@('user-unchecked',$null,'','',$false,'checked-source',$true),@('machine-pending',$null,'1','',$true,'checked-source',$false),@('unchecked','','','',$false,'checked-source',$false),@('transaction-restart',$null,'','1',$false,'checked-source',$false))) {
+  $path=Join-Path $fixture ($case[0]+'.msi');New-MsiPreflightCopy "$fixture/$($case[5]).msi" $path
   $installer=$null;$db=$null;$session=$null
   try {
    $installer=New-Object -ComObject WindowsInstaller.Installer;$installer.UILevel=5
@@ -94,9 +103,12 @@ namespace WbtLaunchFixture {
    $session.Property('INSTALLFOLDER')=[IO.Path]::GetFullPath("$fixture/payload with spaces")+'\'
    $session.Property('APPMENUDIR')=[IO.Path]::GetFullPath("$fixture/menu")+'\'
    foreach($action in @('CostInitialize','FileCost','CostFinalize')){if($session.DoAction($action) -ne 1){throw "Fixture costing failed: $action"}}
-   $session.Property('WBTLAUNCHAPP')=$case[1];$session.Property('MsiSystemRebootPending')=$case[2];$session.Property('ReplacedInUseFiles')=$case[3]
+   $expectedInitial=if($case[5] -eq 'checked-source'){'1'}else{''}
+   if($session.Property('WBTLAUNCHAPP') -cne $expectedInitial){throw 'Incorrect authored Launch checkbox value.'}
+   if($null -ne $case[1]){$session.Property('WBTLAUNCHAPP')=$case[1]}
+   $session.Property('MsiSystemRebootPending')=$case[2];$session.Property('ReplacedInUseFiles')=$case[3]
    if(Test-Path -LiteralPath $marker){Remove-Item -LiteralPath $marker}
-   [WbtLaunchFixture.ClickOwnFinish]::Start($cfg.product.name+' Setup')
+   [WbtLaunchFixture.ClickOwnFinish]::Start($cfg.product.name+' Setup',[bool]$case[6])
    try {$result=$session.DoAction('WbtExit')}finally{[WbtLaunchFixture.ClickOwnFinish]::Stop()}
    $watch=[Diagnostics.Stopwatch]::StartNew()
    while(!(Test-Path -LiteralPath $marker) -and $watch.Elapsed.TotalSeconds -lt 2){Start-Sleep -Milliseconds 50}

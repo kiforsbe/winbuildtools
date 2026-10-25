@@ -146,7 +146,11 @@ creating output, authors the MSI, checks its contents and only then writes
    runs after InstallInitialize so it participates in the install transaction.
    There are no executable/script custom actions or application termination hooks.
    An explicit consumer option can offer a native success-page app-launch checkbox;
-   the unchecked default and event condition prevent unattended launches.
+   `ui.completion.launchApplicationChecked` optionally initializes its native
+   `WBTLAUNCHAPP` property to 1; the default remains unchecked. Configuration
+   rejects preselection without launch enabled; semantic inspection checks the
+   exact initial property. Finish reads the current choice without resetting it,
+   and its full-UI/success/transaction-restart condition prevents unattended launch.
    [Maintenance.ps1](msi/Maintenance.ps1) authors standard reserved files-in-use
    dialogs and native consent events. Restart Manager requests normal shutdown
    of file-using applications; it does not force termination or automatically

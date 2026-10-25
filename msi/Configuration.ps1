@@ -81,6 +81,7 @@ function Read-MsiConfiguration([string]$Path) {
     }
     $ui=if($config.ui) {$config.ui}else{@{}}
     $completion=if($ui.completion) {$ui.completion}else{@{}}
+    if($completion.launchApplicationChecked -and !$completion.launchApplication) { throw 'launchApplicationChecked requires launchApplication.' }
     foreach($name in @('logo','sidebarImage')) {
         $asset=$ui[$name]
         if(!$asset) { continue }

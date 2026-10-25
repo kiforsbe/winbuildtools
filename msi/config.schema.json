@@ -182,6 +182,9 @@
             "launchApplication": {
               "type": "boolean"
             },
+            "launchApplicationChecked": {
+              "type": "boolean"
+            },
             "showDetails": {
               "type": "boolean"
             },

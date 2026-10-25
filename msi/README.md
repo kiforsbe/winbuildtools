@@ -206,6 +206,7 @@ Both schemas accept these optional presentation fields:
   "showBrowseButton": true,
   "completion": {
     "launchApplication": true,
+    "launchApplicationChecked": false,
     "showDetails": true,
     "releaseNotesUrl": "https://example.com/releases",
     "helpUrl": "https://example.com/getting-started",
@@ -232,7 +233,8 @@ contradictory options, unsafe paths/URLs and invalid images are rejected.
 | `ui.logo` | Optional payload-relative ICO/PNG/JPEG/BMP; small header logo and larger sidebar logo when no full sidebar image is supplied |
 | `ui.sidebarImage` | Optional PNG/JPEG/BMP artwork; requires explicit `brandedSidebar`; includes its own logo/lettering and fills the sidebar without text overlays |
 | `ui.showBrowseButton` | Defaults to true when directory editing is enabled; explicit true requires `allowDirectoryChange=true`; false retains direct text editing |
-| `ui.completion.launchApplication` | Default false; offers an initially unchecked Run checkbox after successful full-UI install/update |
+| `ui.completion.launchApplication` | Default false; offers a Launch checkbox after successful full-UI install/update |
+| `ui.completion.launchApplicationChecked` | Default false; true requires `launchApplication=true` and initially checks Launch; users can still clear it |
 | `ui.completion.showDetails` | Default true; adds a modal Details button with selectable folder/log fields, version, architecture and context |
 | `ui.completion.releaseNotesUrl` / `helpUrl` | Optional literal HTTPS URLs, at most 1024 characters; no credentials, MSI property references or shell/file protocols |
 | `ui.completion.messages` | Optional plain-text body overrides for `installed`, `updated`, `repaired`, `removed`, `canceled`, `failed`, `restartRequired`; 1–160 printable characters each; headings remain tied to the actual operation |
@@ -249,6 +251,11 @@ which native MSI loads. All encoded frames and the installed payload ICO remain
 unchanged. The selected frame is decoded before authoring; inspection recomputes
 the exact derived resource hash. Other image formats remain byte-identical to
 their payload source. No download or image package is used.
+
+To preselect Launch, set both `ui.completion.launchApplication=true` and
+`ui.completion.launchApplicationChecked=true`. Omitting the latter retains the
+unchecked default. This only initializes the checkbox: clearing it prevents launch,
+and repair/removal, non-full UI and transaction restart gates remain unchanged.
 
 Finish pages distinguish installation, update, repair and removal. Normal logs
 sit behind Details; cancellation/failure retain visible log information even when

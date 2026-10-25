@@ -69,6 +69,10 @@ function New-MsiPackage {
    if($Configuration.installation.restartManager -eq 'disabled') { $properties.MSIRESTARTMANAGERCONTROL='Disable' }
    $properties.SecureCustomProperties+=';ALLUSERS;MSIINSTALLPERUSER;WBTINSTALLSCOPE'
   }
+  # Initial UI choice only; Finish still requires full-UI successful installation,
+  # no transaction restart and the user's current checkbox value. Never reselect
+  # at Finish: clearing the checkbox must remain effective.
+  if($Configuration.ui.completion.launchApplication -and $Configuration.ui.completion.launchApplicationChecked) { $properties.WBTLAUNCHAPP='1' }
   foreach($name in $properties.Keys) { Add-MsiRow $installer $database Property @('Property','Value') @($name,$properties[$name]) }
   Add-MsiMaintenanceUi $installer $database
   Add-MsiScopeUi $installer $database $Configuration $Architecture

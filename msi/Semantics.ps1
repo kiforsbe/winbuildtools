@@ -69,6 +69,7 @@ function Assert-MsiSemantics($Snapshot,$Configuration,[object[]]$Files,[string]$
  }
  $iconName='App.exe'
  if($iconName) { $properties.ARPPRODUCTICON=$iconName; $rows.Icon.Add(@($iconName)) }
+ if($Configuration.ui.completion.launchApplication -and $Configuration.ui.completion.launchApplicationChecked) { $properties.WBTLAUNCHAPP='1' }
  $properties.WBTMAINTENANCE='repair'
  foreach($spec in @(Get-MsiBrandingSpecs $Configuration)) { $rows.Binary.Add(@($spec.Name)) }
  foreach($entry in $properties.GetEnumerator()) { $rows.Property.Add(@($entry.Key,$entry.Value)) }

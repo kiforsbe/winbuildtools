@@ -5,6 +5,13 @@ All notable changes to winbuildtools are listed here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-25
+
+### Added
+
+- Both MSI schemas accept `ui.completion.launchApplicationChecked` to preselect
+  Launch when enabled; users can still clear it, and existing launch gates apply.
+
 ### Fixed
 
 - The MSI Finish-page Launch checkbox now runs the application; its native

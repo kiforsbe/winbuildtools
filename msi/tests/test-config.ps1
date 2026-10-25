@@ -111,7 +111,7 @@ try {
  $presentation.ui.logo='Assets/Example.ico'
  $presentation.ui.sidebarImage='Assets/sidebar.png'
  $presentation.ui.showBrowseButton=$true
- $presentation.ui.completion=@{launchApplication=$true;showDetails=$true;releaseNotesUrl='https://example.com/notes?a=1&b=2';helpUrl='https://example.com/help';messages=@{installed='Ready to use.';updated='Updated.';repaired='Repaired.';removed='Removed.';canceled='Canceled.';failed='Failed.';restartRequired='Restart Windows.'}}
+ $presentation.ui.completion=@{launchApplication=$true;launchApplicationChecked=$true;showDetails=$true;releaseNotesUrl='https://example.com/notes?a=1&b=2';helpUrl='https://example.com/help';messages=@{installed='Ready to use.';updated='Updated.';repaired='Repaired.';removed='Removed.';canceled='Canceled.';failed='Failed.';restartRequired='Restart Windows.'}}
  $presentation | ConvertTo-Json -Depth 10 | Set-Content $path
  $validatedPresentation=Read-MsiConfiguration $path
  Check ($validatedPresentation.ui.allowDirectoryChange -eq $true -and $validatedPresentation.application.appUserModelId -ceq 'Example.App') 'Optional presentation and application identity load.'
@@ -131,6 +131,9 @@ try {
   {param($x) $x.ui.layout='compactHeader'},
   {param($x) $x.ui.allowDirectoryChange=$false},
   {param($x) $x.ui.completion.launchApplication='yes'},
+  {param($x) $x.ui.completion.launchApplicationChecked='yes'},
+  {param($x) $x.ui.completion.launchApplication=$false},
+  {param($x) $x.ui.completion.Remove('launchApplication') | Out-Null},
   {param($x) $x.ui.completion.command='cmd.exe'},
   {param($x) $x.ui.completion.helpUrl='file:///C:/Windows/notepad.exe'},
   {param($x) $x.ui.completion.helpUrl='https://user:password@example.com/help'},

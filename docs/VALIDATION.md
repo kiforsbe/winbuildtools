@@ -522,3 +522,38 @@ machine-scope/UAC, elevated-launch, accessibility or ICE acceptance. A separate
 inspection issue was also observed: single-member cabinets can be extracted under
 `payload.cab` rather than the expected file key. It remains unfixed; the diagnostic
 fixtures used two files or the full consumer payload.
+
+
+## Release 0.5.0 and Launch preselection — 2026-10-25
+
+The owner requested a stable tagged release before VidVNC integration. Both
+schemas now accept `ui.completion.launchApplicationChecked`, default false;
+true requires `launchApplication=true`. It initializes the native checkbox
+property once. Finish still reads the current choice with the same full-UI,
+successful install/update and transaction-restart gates and raw File-key token.
+No dependency or executable custom action was added.
+
+Tests first reproduced schema rejection and the missing initial property.
+Configuration checks then passed 71 cases. Expanded presentation checks cover
+both schemas on x64/ARM64, explicit true/false and removal of the authored initial
+property rejected before extraction. `pwsh -NoProfile -File
+msi/tests/test-launch.ps1` passed seven isolated native cases: selected, default
+unchecked, authored preselection, a real checkbox click clearing that selection,
+unrelated machine pending restart, explicit property clearing and transaction
+restart. Only the owned marker executable ran; no installed product was changed.
+
+Fresh `./verify.ps1 -Integration` exited 0: configuration 71, v1 157, v2 151,
+wizard/registration 465 and presentation 996. Shared/MSIX/signing/certificate/
+.NET/repository checks passed, including 134 local document links. The expected
+missing-assets negative fixture preceded successful locked restore/build/publish/
+execution. An earlier run stopped at outdated extraction provenance hashes; those
+four records were updated before this successful full run. Its recursive consumer
+used prior committed HEAD `bf3c416`; the release commit is separately checked
+before tag publication. `git diff --check` passed.
+
+Fresh independent review found no Critical/Important issue. Its minor contract
+wording, architecture coverage and property-tampering coverage findings were
+addressed and rechecked. The previously documented native fixture marker-read
+race and timeout cleanup hardening remain deferred. Stable version status does
+not establish the outstanding installed UAC/privilege/accessibility/ICE and native
+ARM64 runtime checks. No hosted Actions run was requested or dispatched.

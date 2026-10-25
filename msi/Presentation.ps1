@@ -5,8 +5,9 @@ Apply consumer-selected branding and completion conveniences to the native model
 .DESCRIPTION
 Called by Wizard after its core rows exist; Scope uses the small header helper.
 Only native controls/events are added. Browse edits a temporary property before
-costing and commits only after validation. Launch is an unchecked full-UI success
-choice bound to the configured File key, without parameters or custom actions.
+costing and commits only after validation. Launch defaults unchecked; consumers
+may preselect it in configuration. It remains a full-UI success choice bound to
+the configured File key, without parameters or custom actions.
 Images/links are explicit consumer data; inspection compares the resulting model.
 #>
 function Add-MsiScopeBranding($Model,$Configuration) {

@@ -68,7 +68,7 @@ termination custom actions or run a shutdown/install transaction during automate
 verification. An installed older MSI keeps its cached policy until a separately
 validated servicing path replaces it.
 
-Tool version 0.5.0-beta.1 (`v0.5.0-beta.1`) retains the command and result-field
+Tool version 0.5.0 (`v0.5.0`) retains the command and result-field
 contracts, extends v1/v2 with optional presentation fields, and includes the native
 setup/servicing wizard and bounded registration described below. Inspection
 requires the matching maintenance, registration and native UI tables.
@@ -111,11 +111,13 @@ install session. The separately opted-in `msi/tests/acceptance.ps1 -RunLifecycle
 -DisposableHost` performs real synthetic servicing only on an isolated host;
 it is never invoked by verification or CI. See [acceptance](docs/MSI-ACCEPTANCE.md).
 
-The 0.5.0-beta.1 presentation support adds `Branding.ps1` before Payload and
+The 0.5.0 presentation support adds `Branding.ps1` before Payload and
 `Presentation.ps1` before Wizard to the standalone loader. Both JSON schemas
 accept the [same `ui` contract](msi/README.md#native-setup-and-maintenance), with a
 complete [example](msi/example-ui.json). Binary resource names and bytes must be
 inspected before costing; do not generalize this into executable resource loading.
-Native launch is opt-in, unchecked and bound only to the application's File key.
+Native launch is opt-in and bound only to the application's File key. Its checkbox
+defaults unchecked; `ui.completion.launchApplicationChecked=true` preselects it
+without changing Finish gates or preventing users from clearing it.
 Do not introduce launch commands/arguments, launch in unattended UI or conflate
 that action with Restart Manager's automatic relaunch (which remains disabled).

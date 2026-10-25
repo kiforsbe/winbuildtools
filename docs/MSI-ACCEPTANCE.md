@@ -30,7 +30,7 @@ selection can differ from a live session. This proves rendering only, not Back,
 keyboard focus, consent, cancellation, progress ticks, UAC or reboot conditions.
 The preview is cleared before COM release to avoid native preview shutdown hangs.
 
-Version 0.5.0-beta.1 presentation support adds `WbtBrowse` (when browsing is enabled) and
+Version 0.5.0 presentation support adds `WbtBrowse` (when browsing is enabled) and
 `WbtInstallDetails` (when details are enabled). Preview can display both configured
 layouts and image resources. Explicit `-Properties @{MsiSystemRebootPending='1';
 ReplacedInUseFiles='';UILevel='5'}` selects an ordinary success example even with
@@ -48,8 +48,9 @@ It starts a bounded STA subprocess, builds an inert marker executable with the
 Windows .NET Framework compiler and opens only the Finish dialog on isolated
 packages whose UI/execute sequences were emptied. Native costing resolves the
 fixture path, including spaces. Finish must launch the marker when selected,
-including with an unrelated machine pending restart; unchecked and transaction
-restart cases must not launch it. No installed product, shortcut, trust entry or
+including authored preselection and an unrelated machine pending restart. The
+default unchecked case, a real native click clearing the preselected checkbox,
+an explicitly cleared property and transaction restart must not launch it. No installed product, shortcut, trust entry or
 real application is changed. This desktop-dependent test is separate from
 `verify.ps1` and hosted verification. It does not prove launch privilege behavior
 after an elevated install or full installed servicing.

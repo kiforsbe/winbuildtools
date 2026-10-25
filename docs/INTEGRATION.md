@@ -82,15 +82,16 @@ older installed packages lack that record and require their known `INSTALLFOLDER
 on upgrade. Do not claim Start right-click Uninstall from metadata inspection:
 complete [installed acceptance](MSI-ACCEPTANCE.md) with rebuilt consumer packages.
 
-Beta `v0.5.0-beta.1` adds `ui` fields for both layouts, consumer logo/sidebar artwork,
+Release `v0.5.0` adds `ui` fields for both layouts, consumer logo/sidebar artwork,
 native Browse and configurable finish messages/details/HTTPS links/launch. Use
 [example-ui.json](../msi/example-ui.json) as a full v2 example; the same object
 works with v1. The `v0.4.0` release does not include these newer fields. Deliberately
-pin `v0.5.0-beta.1` to opt in. Image paths are relative to the
+pin `v0.5.0` to opt in. Image paths are relative to the
 approved payload; include them in v2 component maps. Product URLs/artwork/messages
 belong in the consumer configuration. Launch is disabled unless enabled there,
-and still requires the user to check the final-page checkbox. Validate its Windows
-identity and permissions before enabling it in a production consumer installer.
+and its checkbox defaults unchecked. Set `ui.completion.launchApplicationChecked=true`
+with `launchApplication=true` to preselect it; users can still clear it. Validate
+its Windows identity and permissions before enabling it in a production consumer installer.
 
 | Concern | Consumer keeps | Shared mechanism to invoke |
 | --- | --- | --- |

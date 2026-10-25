@@ -57,6 +57,7 @@
       "showDetails": true,
       "releaseNotesUrl": "https://example.com/releases",
       "launchApplication": true,
+      "launchApplicationChecked": false,
       "helpUrl": "https://example.com/getting-started"
     },
     "showBrowseButton": true,
